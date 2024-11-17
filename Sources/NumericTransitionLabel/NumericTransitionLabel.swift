@@ -14,7 +14,7 @@ public typealias PlatformView = UIView
 #endif
 
 @MainActor
-public class NumericTransitionLabel: PlatformView {
+open class NumericTransitionLabel: PlatformView {
 
     public typealias TextAlignment = NumericTransitionTextLayer.TextAlignment
 
