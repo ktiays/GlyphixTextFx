@@ -83,6 +83,7 @@ public final class NumericTransitionTextLayer: CALayer {
     private var layerStates: [CALayer: LayerState] = [:]
     private var characterStates: [Character: ArrayContainer<LayerState>] = [:]
     private let smoothSpring: Spring = .smooth
+    private let phoneSpring: Spring = .smooth(duration: 0.42)
     private let bouncySpring: Spring = .init(response: 0.4, dampingRatio: 0.66)
 
     #if os(macOS)
@@ -353,7 +354,7 @@ public final class NumericTransitionTextLayer: CALayer {
         state.updateTransform()
 
         if var opacityAnimation = state.opacityAnimation {
-            bouncySpring.update(
+            phoneSpring.update(
                 value: &opacityAnimation.value,
                 velocity: &opacityAnimation.velocity,
                 target: opacityAnimation.target,
