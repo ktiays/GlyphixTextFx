@@ -9,6 +9,11 @@ import QuartzCore
 import AppKit
 #endif
 
+#if DEBUG && os(iOS)
+@_silgen_name("UIAnimationDragCoefficient")
+func UIAnimationDragCoefficient() -> Float
+#endif
+
 public final class SharedDisplayLink: NSObject {
 
     public struct Context {

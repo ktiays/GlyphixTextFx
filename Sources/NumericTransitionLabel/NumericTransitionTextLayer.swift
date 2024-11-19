@@ -83,6 +83,7 @@ public final class NumericTransitionTextLayer: CALayer {
     private var layerStates: [CALayer: LayerState] = [:]
     private var characterStates: [Character: ArrayContainer<LayerState>] = [:]
     private let smoothSpring: Spring = .smooth
+    private let snappySpring: Spring = .snappy
     private let phoneSpring: Spring = .smooth(duration: 0.42)
     private let bouncySpring: Spring = .init(response: 0.4, dampingRatio: 0.66)
 
@@ -251,7 +252,12 @@ public final class NumericTransitionTextLayer: CALayer {
     }
 
     private func animateTransition(with context: SharedDisplayLink.Context) {
-        let duration = context.targetTimestamp - context.timestamp
+        #if DEBUG && os(iOS)
+        let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
+        #else
+        let animationFactor: TimeInterval = 1
+        #endif
+        let duration = (context.targetTimestamp - context.timestamp) * animationFactor
 
         var needsRedraw: Bool = false
         var colorAnimation = self.colorAnimation
@@ -320,7 +326,7 @@ public final class NumericTransitionTextLayer: CALayer {
         }
 
         if var scaleAnimation = state.scaleAnimation {
-            smoothSpring.update(
+            snappySpring.update(
                 value: &scaleAnimation.value,
                 velocity: &scaleAnimation.velocity,
                 target: scaleAnimation.target,
@@ -551,7 +557,7 @@ extension NumericTransitionTextLayer {
             case disappear
         }
 
-        private static let smallestScale: CGFloat = 0.24
+        private static let smallestScale: CGFloat = 0.4
         private static let appearBlurRadius: CGFloat = 10
         private static let disappearBlurRadius: CGFloat = 6
 
