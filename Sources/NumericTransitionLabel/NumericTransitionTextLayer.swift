@@ -203,8 +203,8 @@ public final class NumericTransitionTextLayer: CALayer {
                             state.textBounds = boundingRect
                             state.frame = rect
                             state.isDirty = true
-                            state.layer.setNeedsDisplay()
                             state.invalid = false
+                            state.layer.setNeedsDisplay()
                             continue nextCharacter
                         }
                     }
@@ -276,7 +276,7 @@ public final class NumericTransitionTextLayer: CALayer {
                     updateLayerColor(state.layer)
                 }
                 updateLayerState(state, deltaTime: duration)
-                if !state.isAnimating && state.invalid {
+                if !state.isVisible && state.invalid {
                     removeStates.append(state)
                 }
             }
@@ -519,6 +519,12 @@ extension NumericTransitionTextLayer {
                 || opacityAnimation != nil
                 || blurRadiusAnimation != nil
         }
+        var isVisible: Bool {
+            if let opacityAnimation {
+                return opacityAnimation.value >= 0.01
+            }
+            return opacity >= 0.01
+        }
 
         let layer: CALayer
 
@@ -609,7 +615,13 @@ extension NumericTransitionTextLayer: NumericTransitionTextLayer.LayerStateDeleg
         let frame = state.presentationFrame
         let transform = layer.transform
         layer.transform = CATransform3DIdentity
-        layer.frame = frame.offsetBy(dx: anchor.x, dy: anchor.y - textBounds.midY)
+        let targetFrame = frame.offsetBy(dx: anchor.x, dy: anchor.y - textBounds.midY)
+        let currentSize = layer.bounds.size
+        if currentSize != frame.size {
+            layer.frame = targetFrame
+        } else {
+            layer.position = .init(x: targetFrame.midX, y: targetFrame.midY)
+        }
         layer.transform = transform
     }
 }
