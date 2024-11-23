@@ -3,7 +3,8 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
-import SwiftUI
+import Respring
+import QuartzCore
 
 struct AnimationState<T>: VectorArithmetic where T: VectorArithmetic {
 

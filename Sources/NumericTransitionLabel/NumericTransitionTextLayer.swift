@@ -3,7 +3,7 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
-import SwiftUI
+import Respring
 
 #if os(macOS)
 import AppKit
@@ -83,7 +83,7 @@ public final class NumericTransitionTextLayer: CALayer {
     private var layerStates: [CALayer: LayerState] = [:]
     private var characterStates: [Character: ArrayContainer<LayerState>] = [:]
     private let smoothSpring: Spring = .smooth
-    private let snappySpring: Spring = .snappy
+    private let snappySpring: Spring = .init(duration: 0.3)
     private let phoneSpring: Spring = .smooth(duration: 0.42)
     private let bouncySpring: Spring = .init(response: 0.4, dampingRatio: 0.66)
 

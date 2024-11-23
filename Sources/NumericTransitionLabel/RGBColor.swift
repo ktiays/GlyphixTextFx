@@ -3,7 +3,13 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
-import SwiftUI
+import Respring
+
+#if os(macOS)
+import AppKit
+#else
+import UIKit
+#endif
 
 struct RGBColor: VectorArithmetic {
     var red: Double
