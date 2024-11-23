@@ -47,7 +47,11 @@ public final class SharedDisplayLink: NSObject {
 
     public static let shared = SharedDisplayLink()
 
+    #if os(macOS)
+    private var displayLink: CVDisplayLink?
+    #else
     private var displayLink: CADisplayLink?
+    #endif
     fileprivate var targets: [Target] = []
 
     public func add(_ update: @escaping (Context) -> Void) -> Target {
@@ -55,32 +59,36 @@ public final class SharedDisplayLink: NSObject {
         targets.append(target)
         if displayLink == nil {
             #if os(macOS)
-            guard
-                let link = NSScreen.main?.displayLink(
-                    target: self,
-                    selector: #selector(handleDisplayLink(_:))
+            var link: CVDisplayLink?
+            CVDisplayLinkCreateWithActiveCGDisplays(&link)
+            let displayLinkContext = Unmanaged.passUnretained(self).toOpaque()
+            CVDisplayLinkSetOutputCallback(link!, { displayLink, inNow, inOutputTime, flagsIn, flagsOut, displayLinkContext in
+                let clockFrequency = CVGetHostClockFrequency()
+                let context = Context(
+                    duration: TimeInterval(inNow.pointee.videoRefreshPeriod) / TimeInterval(inNow.pointee.videoTimeScale),
+                    timestamp: TimeInterval(inNow.pointee.hostTime) / clockFrequency,
+                    targetTimestamp: TimeInterval(inOutputTime.pointee.hostTime) / clockFrequency
                 )
-            else {
-                fatalError()
-            }
+                Task { @MainActor in
+                    let selfPointer = Unmanaged<SharedDisplayLink>.fromOpaque(displayLinkContext!).takeUnretainedValue()
+                    selfPointer.handleDisplayLink(with: context)
+                }
+                return kCVReturnSuccess
+            }, displayLinkContext)
+            CVDisplayLinkStart(link!)
             #else
             let link = CADisplayLink(target: self, selector: #selector(handleDisplayLink(_:)))
-            #endif
-            link.preferredFrameRateRange = .init(minimum: 80, maximum: 120, preferred: 120)
+            if #available(iOS 15.0, *) {
+                link.preferredFrameRateRange = .init(minimum: 80, maximum: 120, preferred: 120)
+            }
             link.add(to: .current, forMode: .common)
+            #endif
             displayLink = link
         }
         return target
     }
 
-    @objc
-    private func handleDisplayLink(_ displayLink: CADisplayLink) {
-        let context = Context(
-            duration: displayLink.duration,
-            timestamp: displayLink.timestamp,
-            targetTimestamp: displayLink.targetTimestamp
-        )
-
+    private func handleDisplayLink(with context: Context) {
         var removeIndices: [Int] = []
         for (index, target) in targets.enumerated() {
             guard !target.isPaused else {
@@ -94,8 +102,29 @@ public final class SharedDisplayLink: NSObject {
         }
 
         if targets.isEmpty {
-            displayLink.invalidate()
-            self.displayLink = nil
+            invalidateDisplayLink()
         }
     }
+
+    private func invalidateDisplayLink() {
+        #if os(macOS)
+        if let displayLink {
+            CVDisplayLinkStop(displayLink)
+        }
+        #else
+        displayLink?.invalidate()
+        #endif
+        self.displayLink = nil
+    }
+
+    #if os(iOS)
+    @objc private func handleDisplayLink(_ displayLink: CADisplayLink) {
+        let context = Context(
+            duration: displayLink.duration,
+            timestamp: displayLink.timestamp,
+            targetTimestamp: displayLink.targetTimestamp
+        )
+        handleDisplayLink(with: context)
+    }
+    #endif
 }

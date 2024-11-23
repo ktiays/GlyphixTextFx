@@ -6,10 +6,10 @@ import PackageDescription
 let package = Package(
     name: "NumericTransitionLabel",
     platforms: [
-        .macOS(.v14),
-        .iOS(.v17),
-        .watchOS(.v10),
-        .tvOS(.v17),
+        .macOS(.v11),
+        .iOS(.v13),
+        .watchOS(.v5),
+        .tvOS(.v13),
     ],
     products: [
         .library(

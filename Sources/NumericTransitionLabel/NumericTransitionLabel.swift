@@ -53,6 +53,10 @@ open class NumericTransitionLabel: PlatformView {
 
         self.wantsLayer = true
     }
+    
+    public required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
 
     public override func makeBackingLayer() -> CALayer {
         NumericTransitionTextLayer()
@@ -65,33 +69,14 @@ open class NumericTransitionLabel: PlatformView {
     }
     #else
     
-    private var traitChangeRegistrations: [any UITraitChangeRegistration] = []
-    
-    deinit {
-        Task { @MainActor in
-            for registration in traitChangeRegistrations {
-                unregisterForTraitChanges(registration)
-            }
-        }
-    }
-    
     public override class var layerClass: AnyClass {
         NumericTransitionTextLayer.self
     }
     
-    public override init(frame: CGRect) {
-        super.init(frame: frame)
-        
-        let registration = registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (view: Self, previousTraitCollection) in
-            view.textLayer.effectiveAppearanceDidChange(view.traitCollection)
-        }
-        traitChangeRegistrations.append(registration)
+    open override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        textLayer.effectiveAppearanceDidChange(self.traitCollection)
     }
     #endif
-    
-    public required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
     
     public override var intrinsicContentSize: CGSize {
         textLayer.textBounds.size

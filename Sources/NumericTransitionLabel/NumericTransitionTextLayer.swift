@@ -257,8 +257,8 @@ public final class NumericTransitionTextLayer: CALayer {
         #else
         let animationFactor: TimeInterval = 1
         #endif
-        let duration = (context.targetTimestamp - context.timestamp) * animationFactor
-
+        let duration = min(context.duration, context.targetTimestamp - context.timestamp) * animationFactor
+        
         var needsRedraw: Bool = false
         var colorAnimation = self.colorAnimation
         if !colorAnimation.isCompleted {
@@ -444,7 +444,7 @@ extension NumericTransitionTextLayer: CALayerDelegate {
         let context = NSGraphicsContext(cgContext: ctx, flipped: true)
         NSGraphicsContext.current = context
         #else
-        let context = UIGraphicsPushContext(ctx)
+        UIGraphicsPushContext(ctx)
         #endif
         let anchor: CGFloat =
             switch alignment {
