@@ -558,7 +558,7 @@ extension NumericTransitionTextLayer {
         }
 
         private static let smallestScale: CGFloat = 0.4
-        private static let appearBlurRadius: CGFloat = 10
+        private static let appearBlurRadius: CGFloat = 9
         private static let disappearBlurRadius: CGFloat = 6
 
         func configureAnimation(with type: AnimationType, countsDown: Bool = false) {

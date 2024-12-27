@@ -18,9 +18,9 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/ktiays/Respring", branch: "main"),
+        .package(url: "https://github.com/ktiays/Respring", from: "1.0.0"),
     ],
-    targets: [
+    targets: [ 
         .target(
             name: "NumericTransitionLabel",
             dependencies: ["Respring"]
