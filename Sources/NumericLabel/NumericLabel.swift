@@ -9,21 +9,21 @@ import NumericTransitionLabel
 import SwiftUI
 
 public struct NumericLabel {
+    public let font: PlatformFont
     public var text: String
-    public var font: PlatformFont = .preferredFont(forTextStyle: .body)
     public var textColor: PlatformColor = .numericLabelColor
 
-    public init(text: String) {
+    public init(text: String, font: PlatformFont = .preferredFont(forTextStyle: .body)) {
         self.text = text
+        self.font = font
     }
 
     @MainActor public func createView() -> NumericTransitionLabel {
-        NumericTransitionLabel()
+        NumericTransitionLabel(font: font)
     }
 
     @MainActor public func updatePropertys(forView label: NumericTransitionLabel) {
         label.text = text
-        label.font = font
         label.textColor = textColor
     }
 }
