@@ -37,6 +37,11 @@ public struct NumericLabel {
         public func updateUIView(_ uiView: NumericTransitionLabel, context _: Context) {
             updatePropertys(forView: uiView)
         }
+        
+        @available(iOS 16.0, *)
+        public func sizeThatFits(_ proposal: ProposedViewSize, uiView: NumericTransitionLabel, context: Context) -> CGSize? {
+            uiView.intrinsicContentSize
+        }
     }
 #else
 
@@ -51,6 +56,11 @@ public struct NumericLabel {
 
             public func updateNSView(_ nsView: NumericTransitionLabel, context _: Context) {
                 updatePropertys(forView: nsView)
+            }
+            
+            @available(macOS 13.0, *)
+            public func sizeThatFits(_ proposal: ProposedViewSize, nsView: NumericTransitionLabel, context: Context) -> CGSize? {
+                nsView.intrinsicContentSize
             }
         }
 
