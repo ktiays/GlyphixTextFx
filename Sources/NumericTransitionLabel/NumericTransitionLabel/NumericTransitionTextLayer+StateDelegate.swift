@@ -3,14 +3,16 @@
 //  Copyright (c) 2025 Lakr233. All rights reserved.
 //
 
-extension NumericTransitionTextLayer.State {
+extension NumericTransitionTextLayer.LayerState {
+    
     protocol Delegate: AnyObject {
-        func updateFrame(with state: NumericTransitionTextLayer.State)
+        func updateFrame(with state: NumericTransitionTextLayer.LayerState)
     }
 }
 
-extension NumericTransitionTextLayer: NumericTransitionTextLayer.State.Delegate {
-    func updateFrame(with state: State) {
+extension NumericTransitionTextLayer: NumericTransitionTextLayer.LayerState.Delegate {
+    
+    func updateFrame(with state: LayerState) {
         guard let textBounds = state.textBounds else {
             return
         }

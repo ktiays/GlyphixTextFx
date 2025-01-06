@@ -7,6 +7,7 @@ import Foundation
 import QuartzCore
 
 struct ColorAddFilter {
+    
     static let inputColorKeyPath = "filters.colorAdd.inputColor"
 
     let effect: NSObject

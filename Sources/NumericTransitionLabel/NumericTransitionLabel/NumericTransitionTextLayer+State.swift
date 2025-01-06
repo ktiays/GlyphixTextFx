@@ -6,7 +6,9 @@
 import Foundation
 
 extension NumericTransitionTextLayer {
-    class State {
+
+    final class LayerState {
+        
         var frame: CGRect = .zero {
             didSet {
                 if frame == presentationFrame {

@@ -7,6 +7,7 @@ import NumericTransitionLabel
 import SwiftUI
 
 public struct NumericLabel {
+    
     public let font: PlatformFont
     public var text: String
     public var textColor: PlatformColor = .numericLabelColor
@@ -30,6 +31,7 @@ public struct NumericLabel {
     import UIKit
 
     extension NumericLabel: UIViewRepresentable {
+        
         public func makeUIView(context _: Context) -> NumericTransitionLabel {
             createView()
         }
@@ -46,10 +48,10 @@ public struct NumericLabel {
 #else
 
     #if canImport(AppKit)
-
         import AppKit
 
         extension NumericLabel: NSViewRepresentable {
+            
             public func makeNSView(context _: Context) -> NumericTransitionLabel {
                 createView()
             }
@@ -63,7 +65,6 @@ public struct NumericLabel {
                 nsView.intrinsicContentSize
             }
         }
-
     #endif
 
 #endif
