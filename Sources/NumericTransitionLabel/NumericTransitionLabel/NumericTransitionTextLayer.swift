@@ -7,6 +7,7 @@ import MSDisplayLink
 import Respring
 
 public final class NumericTransitionTextLayer: CALayer {
+
     public var text: String = "" {
         didSet { updateText() }
     }
@@ -47,10 +48,12 @@ public final class NumericTransitionTextLayer: CALayer {
 
     private lazy var defaultFont: PlatformFont = .systemFont(ofSize: PlatformFont.labelFontSize)
 
-    private lazy var textContainer: NSTextContainer = .init(size: .init(
-        width: CGFloat.greatestFiniteMagnitude,
-        height: CGFloat.greatestFiniteMagnitude
-    ))
+    private lazy var textContainer: NSTextContainer = .init(
+        size: .init(
+            width: CGFloat.greatestFiniteMagnitude,
+            height: CGFloat.greatestFiniteMagnitude
+        )
+    )
     private lazy var textStorage: NSTextStorage = .init()
     private lazy var textLayoutManager: NSLayoutManager = {
         let manager = NSLayoutManager()
@@ -62,8 +65,8 @@ public final class NumericTransitionTextLayer: CALayer {
         return manager
     }()
 
-    private var layerStates: [CALayer: State] = [:]
-    private var characterStates: [Character: ArrayContainer<State>] = [:]
+    private var layerStates: [CALayer: LayerState] = [:]
+    private var characterStates: [Character: ArrayContainer<LayerState>] = [:]
     private let smoothSpring: Spring = .smooth
     private let snappySpring: Spring = .init(duration: 0.3)
     private let phoneSpring: Spring = .smooth(duration: 0.42)
@@ -74,15 +77,15 @@ public final class NumericTransitionTextLayer: CALayer {
 
     override init() {
         super.init()
-        commitInit()
+        commonInit()
     }
 
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
-        commitInit()
+        commonInit()
     }
 
-    private func commitInit() {
+    private func commonInit() {
         displayLink.delegatingObject(self)
     }
 
@@ -106,7 +109,7 @@ public final class NumericTransitionTextLayer: CALayer {
 }
 
 extension NumericTransitionTextLayer {
-    func makeLayerState() -> State {
+    func makeLayerState() -> LayerState {
         let layer = CALayer()
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
@@ -121,17 +124,17 @@ extension NumericTransitionTextLayer {
         }
         layer.filters = filters
 
-        let state = State(layer: layer)
+        let state = LayerState(layer: layer)
         state.delegate = self
         return state
     }
 
-    func stateContainer(for character: Character) -> ArrayContainer<State> {
+    func stateContainer(for character: Character) -> ArrayContainer<LayerState> {
         if let container = characterStates[character] {
             return container
         }
 
-        let container = ArrayContainer<State>()
+        let container = ArrayContainer<LayerState>()
         characterStates[character] = container
         return container
     }
@@ -176,15 +179,15 @@ extension NumericTransitionTextLayer {
 
                     let isInVisibleAnimation =
                         state.scaleAnimation != nil
-                            || state.opacityAnimation != nil
-                            || state.blurRadiusAnimation != nil
-                            || state.offsetAnimation != nil
+                        || state.opacityAnimation != nil
+                        || state.blurRadiusAnimation != nil
+                        || state.offsetAnimation != nil
 
                     let isAppearing =
                         state.scaleAnimation?.target == 1
-                            || state.opacityAnimation?.target == 1
-                            || state.blurRadiusAnimation?.target == 0
-                            || state.offsetAnimation?.target == 0
+                        || state.opacityAnimation?.target == 1
+                        || state.blurRadiusAnimation?.target == 0
+                        || state.offsetAnimation?.target == 0
                     if isAppearing || !isInVisibleAnimation {
                         state.range = range
                         state.character = character
@@ -239,9 +242,9 @@ extension NumericTransitionTextLayer {
 
     func animateTransition(with context: DisplayLinkCallbackContext) {
         #if DEBUG && canImport(UIKit)
-            let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
+        let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
         #else
-            let animationFactor: TimeInterval = 1
+        let animationFactor: TimeInterval = 1
         #endif
         let duration = min(context.duration, context.targetTimestamp - context.timestamp) * animationFactor
 
@@ -261,7 +264,7 @@ extension NumericTransitionTextLayer {
             self.colorAnimation = colorAnimation
         }
 
-        var removeStates: [State] = .init()
+        var removeStates: [LayerState] = .init()
         for (_, state) in layerStates {
             if needsRedraw {
                 updateLayerColor(state.layer)
@@ -288,7 +291,7 @@ extension NumericTransitionTextLayer {
         }
     }
 
-    func updateLayerState(_ state: State, deltaTime: TimeInterval) {
+    func updateLayerState(_ state: LayerState, deltaTime: TimeInterval) {
         state.delay -= deltaTime
         if state.delay > 0 { return }
 
@@ -379,20 +382,22 @@ extension NumericTransitionTextLayer {
 // MARK: - CALayerDelegate
 
 extension NumericTransitionTextLayer: CALayerDelegate {
+
     public func action(for _: CALayer, forKey _: String) -> (any CAAction)? {
         NSNull()
     }
 
     public func draw(_ layer: CALayer, in ctx: CGContext) {
         guard let state = layerStates[layer],
-              let textBounds = state.textBounds,
-              state.isDirty
+            let textBounds = state.textBounds,
+            state.isDirty
         else { return }
 
         let range = state.range
         if range.length == 0 { return }
 
-        let contentsScale: CGFloat = (delegate as? PlatformView)?
+        let contentsScale: CGFloat =
+            (delegate as? PlatformView)?
             .animationScalingFactor ?? 2
 
         if layer.contentsScale != contentsScale {
@@ -409,14 +414,15 @@ extension NumericTransitionTextLayer: CALayerDelegate {
         ctx.setShouldSmoothFonts(true)
 
         ctx.draw {
-            let anchor: CGFloat = switch alignment {
-            case .left:
-                0
-            case .center:
-                textBounds.midX
-            case .right:
-                textBounds.maxX
-            }
+            let anchor: CGFloat =
+                switch alignment {
+                case .left:
+                    0
+                case .center:
+                    textBounds.midX
+                case .right:
+                    textBounds.maxX
+                }
             let origin = state.frame.offsetBy(dx: anchor, dy: 0).origin
             textLayoutManager.drawGlyphs(
                 forGlyphRange: range,
@@ -428,6 +434,7 @@ extension NumericTransitionTextLayer: CALayerDelegate {
 }
 
 extension NumericTransitionTextLayer: DisplayLinkDelegate {
+
     public func synchronization(context: DisplayLinkCallbackContext) {
         if Thread.isMainThread {
             animateTransition(with: context)

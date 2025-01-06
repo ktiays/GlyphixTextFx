@@ -7,6 +7,7 @@ import Foundation
 import QuartzCore
 
 struct GaussianBlurFilter {
+    
     static let inputRadiusKeyPath = "filters.gaussianBlur.inputRadius"
 
     let effect: NSObject
