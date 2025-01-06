@@ -1,8 +1,6 @@
 //
-//  NumericTransitionTextLayer+State.swift
-//  NumericTransitionLabel
-//
-//  Created by 秋星桥 on 2025/1/6.
+//  Created by Lakr233 on 2025/1/6.
+//  Copyright (c) 2025 Lakr233. All rights reserved.
 //
 
 import Foundation
