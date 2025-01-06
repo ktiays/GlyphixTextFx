@@ -5,12 +5,6 @@
 
 import Respring
 
-#if os(macOS)
-import AppKit
-#else
-import UIKit
-#endif
-
 struct RGBColor: VectorArithmetic {
     var red: Double
     var green: Double
@@ -59,42 +53,7 @@ struct RGBColor: VectorArithmetic {
     }
 }
 
-extension PlatformColor {
-
-    #if os(macOS)
-    func resolvedRgbColor(with appearance: NSAppearance) -> RGBColor {
-        var color: RGBColor!
-        appearance.performAsCurrentDrawingAppearance {
-            let deviceColor = self.usingColorSpace(.genericRGB)!
-            color = .init(
-                red: Double(deviceColor.redComponent),
-                green: Double(deviceColor.greenComponent),
-                blue: Double(deviceColor.blueComponent),
-                alpha: Double(deviceColor.alphaComponent)
-            )
-        }
-        return color
-    }
-    #else
-    func resolvedRgbColor(with traitCollection: UITraitCollection) -> RGBColor {
-        let cgColor = self.resolvedColor(with: traitCollection).cgColor.converted(
-            to: CGColorSpaceCreateDeviceRGB(),
-            intent: .defaultIntent,
-            options: nil
-        )!
-        let components = cgColor.components!
-        return .init(
-            red: Double(components[0]),
-            green: Double(components[1]),
-            blue: Double(components[2]),
-            alpha: Double(cgColor.alpha)
-        )
-    }
-    #endif
-}
-
 extension RGBColor: ApproximatelyEqual {
-
     static func approximatelyEqual(_ lhs: RGBColor, _ rhs: RGBColor) -> Bool {
         CGFloat.approximatelyEqual(lhs.red, rhs.red)
             && CGFloat.approximatelyEqual(lhs.green, rhs.green)

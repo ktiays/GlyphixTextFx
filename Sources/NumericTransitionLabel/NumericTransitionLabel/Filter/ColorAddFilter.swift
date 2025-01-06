@@ -1,15 +1,14 @@
 //
 //  Created by ktiays on 2024/11/17.
 //  Copyright (c) 2024 ktiays. All rights reserved.
-// 
+//
 
 import Foundation
 import QuartzCore
 
 struct ColorAddFilter {
-    
     static let inputColorKeyPath = "filters.colorAdd.inputColor"
-    
+
     let effect: NSObject
 
     var inputColor: CGColor? {
