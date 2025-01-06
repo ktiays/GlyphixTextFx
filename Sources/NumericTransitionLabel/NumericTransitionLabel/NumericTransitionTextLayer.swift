@@ -7,31 +7,24 @@ import MSDisplayLink
 import Respring
 
 public final class NumericTransitionTextLayer: CALayer {
-    public var text: String? {
-        set {
-            if newValue == presentedText { return }
-            presentedText = newValue
-            updateText()
-        }
-        get { presentedText }
-    }
-
-    private var presentedText: String?
-    public var font: PlatformFont? {
+    public var text: String = "" {
         didSet { updateText() }
     }
 
-    public var textColor: PlatformColor? {
+    public var font: PlatformFont = .preferredFont(forTextStyle: .body) {
+        didSet { updateText() }
+    }
+
+    public var textColor: PlatformColor = .numericLabelColor {
         didSet {
-            colorAnimation.target = textColor?.resolvedRgbColor(with: effectiveAppearance)
-                ?? defaultTextColor.resolvedRgbColor(with: effectiveAppearance)
+            colorAnimation.target = textColor.resolvedRgbColor(with: effectiveAppearance)
         }
     }
 
     private lazy var colorAnimation: AnimationState<RGBColor> = .init(
-        value: defaultTextColor.resolvedRgbColor(with: effectiveAppearance),
+        value: textColor.resolvedRgbColor(with: effectiveAppearance),
         velocity: .zero,
-        target: defaultTextColor.resolvedRgbColor(with: effectiveAppearance)
+        target: textColor.resolvedRgbColor(with: effectiveAppearance)
     )
     public var countsDown: Bool = false
 
@@ -53,7 +46,6 @@ public final class NumericTransitionTextLayer: CALayer {
     }
 
     private lazy var defaultFont: PlatformFont = .systemFont(ofSize: PlatformFont.labelFontSize)
-    private lazy var defaultTextColor: PlatformColor = .numericLabelColor
 
     private lazy var textContainer: NSTextContainer = .init(size: .init(
         width: CGFloat.greatestFiniteMagnitude,
@@ -146,10 +138,8 @@ extension NumericTransitionTextLayer {
 
     func updateText() {
         let attributedText = NSAttributedString(
-            string: text ?? "",
-            attributes: [
-                .font: font ?? defaultFont,
-            ]
+            string: text,
+            attributes: [.font: font]
         )
         textStorage.setAttributedString(attributedText)
 
@@ -157,7 +147,6 @@ extension NumericTransitionTextLayer {
         let delayInterval: TimeInterval = (length == 0 ? 0 : 0.18 / length)
         textBounds = .zero
         layerStates.forEach { $1.invalid = true }
-        guard let text else { return }
 
         var needsAppearCount = 0
         let boundingRect = textLayoutManager.boundingRect(
@@ -405,7 +394,7 @@ extension NumericTransitionTextLayer: CALayerDelegate {
 
         let contentsScale: CGFloat = (delegate as? PlatformView)?
             .animationScalingFactor ?? 2
-        
+
         if layer.contentsScale != contentsScale {
             layer.contentsScale = contentsScale
             DispatchQueue.main.async { layer.setNeedsDisplay() }

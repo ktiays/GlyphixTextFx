@@ -16,12 +16,9 @@ public struct NumericLabel {
     public init(text: String) {
         self.text = text
     }
-    
+
     @MainActor public func createView() -> NumericTransitionLabel {
-        let label = NumericTransitionLabel()
-        updatePropertys(forView: label)
-        label.text = ""
-        return label
+        NumericTransitionLabel()
     }
 
     @MainActor public func updatePropertys(forView label: NumericTransitionLabel) {

@@ -16,17 +16,17 @@ open class NumericTransitionLabel: PlatformView {
         #endif
     #endif
 
-    public var text: String? {
+    public var text: String {
         set { textLayer.text = newValue }
         get { textLayer.text }
     }
 
-    public var font: PlatformFont? {
+    public var font: PlatformFont {
         set { textLayer.font = newValue }
         get { textLayer.font }
     }
 
-    public var textColor: PlatformColor? {
+    public var textColor: PlatformColor {
         set { textLayer.textColor = newValue }
         get { textLayer.textColor }
     }
@@ -49,6 +49,26 @@ open class NumericTransitionLabel: PlatformView {
         layer as! NumericTransitionTextLayer
     }
 
+    public init() {
+        super.init(frame: .zero)
+
+        let wantsLayerSelector = NSSelectorFromString("setWantsLayer:")
+        if responds(to: wantsLayerSelector) {
+            perform(wantsLayerSelector, with: true)
+        }
+
+        text = ""
+        textColor = .numericLabelColor
+        font = .preferredFont(forTextStyle: .body)
+
+        textLayer.updateText()
+    }
+
+    @available(*, unavailable)
+    public required init?(coder _: NSCoder) {
+        fatalError()
+    }
+
     #if canImport(UIKit)
 
         override public class var layerClass: AnyClass {
@@ -61,17 +81,6 @@ open class NumericTransitionLabel: PlatformView {
     #else
 
         #if canImport(AppKit)
-            override public init(frame frameRect: NSRect) {
-                super.init(frame: frameRect)
-
-                wantsLayer = true
-            }
-
-            @available(*, unavailable)
-            public required init?(coder _: NSCoder) {
-                fatalError("init(coder:) has not been implemented")
-            }
-
             override public func makeBackingLayer() -> CALayer {
                 NumericTransitionTextLayer()
             }
