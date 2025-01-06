@@ -21,11 +21,6 @@ open class NumericTransitionLabel: PlatformView {
         get { textLayer.text }
     }
 
-    public var font: PlatformFont {
-        set { textLayer.font = newValue }
-        get { textLayer.font }
-    }
-
     public var textColor: PlatformColor {
         set { textLayer.textColor = newValue }
         get { textLayer.textColor }
@@ -49,7 +44,7 @@ open class NumericTransitionLabel: PlatformView {
         layer as! NumericTransitionTextLayer
     }
 
-    public init() {
+    public init(font: PlatformFont = .preferredFont(forTextStyle: .body)) {
         super.init(frame: .zero)
 
         let wantsLayerSelector = NSSelectorFromString("setWantsLayer:")
@@ -57,11 +52,7 @@ open class NumericTransitionLabel: PlatformView {
             perform(wantsLayerSelector, with: true)
         }
 
-        text = ""
-        textColor = .numericLabelColor
-        font = .preferredFont(forTextStyle: .body)
-
-        textLayer.updateText()
+        textLayer.font = font
     }
 
     @available(*, unavailable)
@@ -70,7 +61,6 @@ open class NumericTransitionLabel: PlatformView {
     }
 
     #if canImport(UIKit)
-
         override public class var layerClass: AnyClass {
             NumericTransitionTextLayer.self
         }
@@ -79,7 +69,6 @@ open class NumericTransitionLabel: PlatformView {
             textLayer.effectiveAppearanceDidChange(traitCollection)
         }
     #else
-
         #if canImport(AppKit)
             override public func makeBackingLayer() -> CALayer {
                 NumericTransitionTextLayer()
