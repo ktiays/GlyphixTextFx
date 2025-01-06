@@ -23,7 +23,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ktiays/Respring", from: "1.0.0"),
-        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.2"),
+        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.3"),
     ],
     targets: [
         .target(
