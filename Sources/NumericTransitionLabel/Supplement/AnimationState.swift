@@ -3,11 +3,10 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
-import Respring
 import QuartzCore
+import Respring
 
 struct AnimationState<T>: VectorArithmetic where T: VectorArithmetic {
-
     var value: T
     var velocity: T
     var target: T
@@ -50,7 +49,6 @@ extension AnimationState where T: ApproximatelyEqual {
 
 extension CGRect: @retroactive AdditiveArithmetic {}
 extension CGRect: @retroactive VectorArithmetic {
-
     public static func - (lhs: Self, rhs: Self) -> Self {
         .init(
             x: lhs.origin.x - rhs.origin.x,

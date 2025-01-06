@@ -15,15 +15,23 @@ let package = Package(
         .library(
             name: "NumericTransitionLabel",
             targets: ["NumericTransitionLabel"]
-        )
+        ),
+        .library(
+            name: "NumericLabel",
+            targets: ["NumericLabel"]
+        ),
     ],
     dependencies: [
         .package(url: "https://github.com/ktiays/Respring", from: "1.0.0"),
+        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.2"),
     ],
-    targets: [ 
+    targets: [
         .target(
             name: "NumericTransitionLabel",
-            dependencies: ["Respring"]
-        )
+            dependencies: ["Respring", "MSDisplayLink"]
+        ),
+        .target(
+            name: "NumericLabel", dependencies: ["NumericTransitionLabel"]
+        ),
     ]
 )

@@ -3,72 +3,61 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
+import MSDisplayLink
 import Respring
 
-#if os(macOS)
-import AppKit
-
-typealias Appearance = NSAppearance
-#else
-import UIKit
-
-typealias Appearance = UITraitCollection
-#endif
-
 public final class NumericTransitionTextLayer: CALayer {
-
     public var text: String? {
         set {
-            if newValue == presentedText {
-                return
-            }
+            if newValue == presentedText { return }
             presentedText = newValue
             updateText()
         }
         get { presentedText }
     }
+
     private var presentedText: String?
     public var font: PlatformFont? {
         didSet { updateText() }
     }
+
     public var textColor: PlatformColor? {
         didSet {
             colorAnimation.target = textColor?.resolvedRgbColor(with: effectiveAppearance) ?? defaultTextColor.resolvedRgbColor(with: effectiveAppearance)
         }
     }
+
     private lazy var colorAnimation: AnimationState<RGBColor> = .init(
         value: defaultTextColor.resolvedRgbColor(with: effectiveAppearance),
         velocity: .zero,
         target: defaultTextColor.resolvedRgbColor(with: effectiveAppearance)
     )
     public var countsDown: Bool = false
+
+    public enum TextAlignment {
+        case left
+        case center
+        case right
+    }
+
     public var alignment: TextAlignment = .center {
         didSet { updateText() }
     }
+
     private(set) var textBounds: CGRect = .zero {
         didSet {
-            #if os(macOS)
-            guard let view = self.delegate as? NSView else {
-                return
-            }
-            #else
-            guard let view = self.delegate as? UIView else {
-                return
-            }
-            #endif
+            guard let view = delegate as? PlatformView else { return }
             view.invalidateIntrinsicContentSize()
         }
     }
 
-    private lazy var defaultFont = PlatformFont.systemFont(ofSize: PlatformFont.labelFontSize)
-    #if os(macOS)
-    private lazy var defaultTextColor = NSColor.textColor
-    #else
-    private lazy var defaultTextColor = UIColor.label
-    #endif
-    private var linkTarget: SharedDisplayLink.Target?
+    private lazy var defaultFont: PlatformFont = .systemFont(ofSize: PlatformFont.labelFontSize)
+    private lazy var defaultTextColor: PlatformColor = .numericLabelColor
 
-    private lazy var textContainer: NSTextContainer = .init(size: .init(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude))
+    private lazy var textContainer: NSTextContainer = .init(size: .init(
+        width: CGFloat.greatestFiniteMagnitude,
+        height: CGFloat.greatestFiniteMagnitude
+    ))
     private lazy var textStorage: NSTextStorage = .init()
     private lazy var textLayoutManager: NSLayoutManager = {
         let manager = NSLayoutManager()
@@ -80,24 +69,35 @@ public final class NumericTransitionTextLayer: CALayer {
         return manager
     }()
 
-    private var layerStates: [CALayer: LayerState] = [:]
-    private var characterStates: [Character: ArrayContainer<LayerState>] = [:]
+    private var layerStates: [CALayer: State] = [:]
+    private var characterStates: [Character: ArrayContainer<State>] = [:]
     private let smoothSpring: Spring = .smooth
     private let snappySpring: Spring = .init(duration: 0.3)
     private let phoneSpring: Spring = .smooth(duration: 0.42)
     private let bouncySpring: Spring = .init(response: 0.4, dampingRatio: 0.66)
+    private var effectiveAppearance: Appearance = .initialValue
 
-    #if os(macOS)
-    private var effectiveAppearance: Appearance = .currentDrawing()
-    #else
-    private var effectiveAppearance: Appearance = .current
-    #endif
+    private let displayLink = DisplayLink()
 
-    public override func action(forKey event: String) -> (any CAAction)? {
+    override init() {
+        super.init()
+        commitInit()
+    }
+
+    public required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commitInit()
+    }
+
+    private func commitInit() {
+        displayLink.delegatingObject(self)
+    }
+
+    override public func action(forKey _: String) -> (any CAAction)? {
         NSNull()
     }
 
-    public override func layoutSublayers() {
+    override public func layoutSublayers() {
         super.layoutSublayers()
 
         for (_, state) in layerStates {
@@ -106,12 +106,14 @@ public final class NumericTransitionTextLayer: CALayer {
     }
 
     func effectiveAppearanceDidChange(_ appearance: Appearance) {
-        self.effectiveAppearance = appearance
+        effectiveAppearance = appearance
         let color = textColor
-        self.textColor = color
+        textColor = color
     }
+}
 
-    private func makeLayerState() -> LayerState {
+extension NumericTransitionTextLayer {
+    private func makeLayerState() -> State {
         let layer = CALayer()
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
@@ -126,47 +128,41 @@ public final class NumericTransitionTextLayer: CALayer {
         }
         layer.filters = filters
 
-        let state = LayerState(layer: layer)
+        let state = State(layer: layer)
         state.delegate = self
         return state
     }
 
-    private func stateContainer(for character: Character) -> ArrayContainer<LayerState> {
+    private func stateContainer(for character: Character) -> ArrayContainer<State> {
         if let container = characterStates[character] {
             return container
         }
 
-        let container = ArrayContainer<LayerState>()
+        let container = ArrayContainer<State>()
         characterStates[character] = container
         return container
     }
 
     private func updateText() {
-        if linkTarget == nil {
-            linkTarget = SharedDisplayLink.shared.add { [weak self] in
-                self?.animateTransition(with: $0)
-            }
-        }
-
         let attributedText = NSAttributedString(
             string: text ?? "",
             attributes: [
-                .font: font ?? defaultFont
+                .font: font ?? defaultFont,
             ]
         )
         textStorage.setAttributedString(attributedText)
 
         let length = TimeInterval(attributedText.length)
         let delayInterval: TimeInterval = (length == 0 ? 0 : 0.18 / length)
-        self.textBounds = .zero
+        textBounds = .zero
         layerStates.forEach { $1.invalid = true }
         if let text {
-            var needsAppearCount: Int = 0
+            var needsAppearCount = 0
             let boundingRect = textLayoutManager.boundingRect(
                 forGlyphRange: NSRange(text.startIndex..., in: text),
                 in: textContainer
             )
-            self.textBounds = boundingRect
+            textBounds = boundingRect
             nextCharacter: for (index, character) in text.enumerated() {
                 let range = NSRange(location: index, length: 1)
                 let anchor: CGFloat =
@@ -189,15 +185,15 @@ public final class NumericTransitionTextLayer: CALayer {
 
                         let isInVisibleAnimation =
                             state.scaleAnimation != nil
-                            || state.opacityAnimation != nil
-                            || state.blurRadiusAnimation != nil
-                            || state.offsetAnimation != nil
+                                || state.opacityAnimation != nil
+                                || state.blurRadiusAnimation != nil
+                                || state.offsetAnimation != nil
 
                         let isAppearing =
                             state.scaleAnimation?.target == 1
-                            || state.opacityAnimation?.target == 1
-                            || state.blurRadiusAnimation?.target == 0
-                            || state.offsetAnimation?.target == 0
+                                || state.opacityAnimation?.target == 1
+                                || state.blurRadiusAnimation?.target == 0
+                                || state.offsetAnimation?.target == 0
                         if isAppearing || !isInVisibleAnimation {
                             state.range = range
                             state.character = character
@@ -251,16 +247,16 @@ public final class NumericTransitionTextLayer: CALayer {
         layer.setValue(colorAnimation.value.cgColor, forKeyPath: ColorAddFilter.inputColorKeyPath)
     }
 
-    private func animateTransition(with context: SharedDisplayLink.Context) {
-        #if DEBUG && os(iOS)
-        let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
+    private func animateTransition(with context: DisplayLinkCallbackContext) {
+        #if DEBUG && canImport(UIKit)
+            let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
         #else
-        let animationFactor: TimeInterval = 1
+            let animationFactor: TimeInterval = 1
         #endif
         let duration = min(context.duration, context.targetTimestamp - context.timestamp) * animationFactor
-        
-        var needsRedraw: Bool = false
-        var colorAnimation = self.colorAnimation
+
+        var needsRedraw = false
+        var colorAnimation = colorAnimation
         if !colorAnimation.isCompleted {
             needsRedraw = true
             smoothSpring.update(
@@ -275,17 +271,16 @@ public final class NumericTransitionTextLayer: CALayer {
             self.colorAnimation = colorAnimation
         }
 
-        var removeStates: [LayerState] = .init()
-        layerStates
-            .forEach { _, state in
-                if needsRedraw {
-                    updateLayerColor(state.layer)
-                }
-                updateLayerState(state, deltaTime: duration)
-                if !state.isVisible && state.invalid {
-                    removeStates.append(state)
-                }
+        var removeStates: [State] = .init()
+        for (_, state) in layerStates {
+            if needsRedraw {
+                updateLayerColor(state.layer)
             }
+            updateLayerState(state, deltaTime: duration)
+            if !state.isVisible, state.invalid {
+                removeStates.append(state)
+            }
+        }
         for state in removeStates {
             let layer = state.layer
             layer.removeFromSuperlayer()
@@ -303,7 +298,7 @@ public final class NumericTransitionTextLayer: CALayer {
         }
     }
 
-    private func updateLayerState(_ state: LayerState, deltaTime: TimeInterval) {
+    private func updateLayerState(_ state: State, deltaTime: TimeInterval) {
         state.delay -= deltaTime
         if state.delay > 0 {
             return
@@ -396,58 +391,36 @@ public final class NumericTransitionTextLayer: CALayer {
 // MARK: - CALayerDelegate
 
 extension NumericTransitionTextLayer: CALayerDelegate {
-
-    public func action(for layer: CALayer, forKey event: String) -> (any CAAction)? {
+    public func action(for _: CALayer, forKey _: String) -> (any CAAction)? {
         NSNull()
     }
 
     public func draw(_ layer: CALayer, in ctx: CGContext) {
-        guard let state = layerStates[layer], let textBounds = state.textBounds else {
-            return
-        }
-        if !state.isDirty {
-            return
-        }
+        guard let state = layerStates[layer],
+              let textBounds = state.textBounds,
+              state.isDirty
+        else { return }
 
         let range = state.range
-        if range.length == 0 {
-            return
-        }
+        if range.length == 0 { return }
 
-        var contentsScale: CGFloat = 2
-        #if os(macOS)
-        if let view = self.delegate as? NSView {
-            if let factor = view.window?.screen?.backingScaleFactor {
-                contentsScale = factor
-            }
-        }
-        #else
-        if let view = self.delegate as? UIView {
-            let factor = view.window?.screen.scale ?? 2
-            contentsScale = factor
-        }
-        #endif
+        let contentsScale: CGFloat = (delegate as? PlatformView)?
+            .animationScalingFactor ?? 2
         if layer.contentsScale != contentsScale {
             layer.contentsScale = contentsScale
-            DispatchQueue.main.async {
-                layer.setNeedsDisplay()
-            }
+            DispatchQueue.main.async { layer.setNeedsDisplay() }
             return
         }
+        defer { state.isDirty = false }
 
         ctx.saveGState()
         ctx.setAllowsAntialiasing(true)
         ctx.setShouldAntialias(true)
         ctx.setAllowsFontSmoothing(true)
         ctx.setShouldSmoothFonts(true)
-        #if os(macOS)
-        let context = NSGraphicsContext(cgContext: ctx, flipped: true)
-        NSGraphicsContext.current = context
-        #else
-        UIGraphicsPushContext(ctx)
-        #endif
-        let anchor: CGFloat =
-            switch alignment {
+
+        ctx.draw {
+            let anchor: CGFloat = switch alignment {
             case .left:
                 0
             case .center:
@@ -455,179 +428,24 @@ extension NumericTransitionTextLayer: CALayerDelegate {
             case .right:
                 textBounds.maxX
             }
-        let origin = state.frame.offsetBy(dx: anchor, dy: 0).origin
-        textLayoutManager.drawGlyphs(forGlyphRange: range, at: .init(x: -origin.x, y: -origin.y))
-        ctx.restoreGState()
-        #if os(macOS)
-        NSGraphicsContext.current = nil
-        #else
-        UIGraphicsPopContext()
-        #endif
-        state.isDirty = false
-    }
-}
-
-extension NumericTransitionTextLayer {
-
-    public enum TextAlignment {
-        case left
-        case center
-        case right
-    }
-}
-
-extension NumericTransitionTextLayer {
-
-    fileprivate class LayerState {
-        var frame: CGRect = .zero {
-            didSet {
-                if frame == presentationFrame {
-                    return
-                }
-                var animation: AnimationState<CGRect> = frameAnimation ?? .init(value: presentationFrame, velocity: .zero, target: frame)
-                animation.target = frame
-                frameAnimation = animation
-            }
-        }
-        var presentationFrame: CGRect = .zero {
-            didSet {
-                delegate?.updateFrame(with: self)
-            }
-        }
-        var frameAnimation: AnimationState<CGRect>?
-
-        var scale: CGFloat = 1
-        var scaleAnimation: AnimationState<CGFloat>?
-
-        var offset: CGFloat = 0
-        var offsetAnimation: AnimationState<CGFloat>?
-
-        var opacity: Float = 1 {
-            didSet { layer.opacity = opacity }
-        }
-        var opacityAnimation: AnimationState<Float>?
-
-        var blurRadius: CGFloat = 0 {
-            didSet {
-                layer.setValue(blurRadius, forKeyPath: GaussianBlurFilter.inputRadiusKeyPath)
-            }
-        }
-        var blurRadiusAnimation: AnimationState<CGFloat>?
-
-        var delay: TimeInterval = 0
-        var invalid: Bool = false
-        var isDirty: Bool = true
-
-        var isAnimating: Bool {
-            frameAnimation != nil
-                || scaleAnimation != nil
-                || offsetAnimation != nil
-                || opacityAnimation != nil
-                || blurRadiusAnimation != nil
-        }
-        var isVisible: Bool {
-            if let opacityAnimation {
-                return opacityAnimation.value >= 0.01
-            }
-            return opacity >= 0.01
-        }
-
-        let layer: CALayer
-
-        var range: NSRange = .init()
-        var character: Character?
-        var textBounds: CGRect?
-
-        weak var delegate: (any LayerStateDelegate)?
-
-        init(layer: CALayer) {
-            self.layer = layer
-        }
-
-        func updateTransform() {
-            let transform = CATransform3DConcat(
-                CATransform3DMakeScale(scale, scale, 1),
-                CATransform3DMakeTranslation(0, offset * frame.height / 3, 0)
+            let origin = state.frame.offsetBy(dx: anchor, dy: 0).origin
+            textLayoutManager.drawGlyphs(
+                forGlyphRange: range,
+                at: .init(x: -origin.x, y: -origin.y)
             )
-            layer.transform = transform
+            ctx.restoreGState()
         }
-
-        enum AnimationType {
-            case appear
-            case disappear
-        }
-
-        private static let smallestScale: CGFloat = 0.4
-        private static let appearBlurRadius: CGFloat = 9
-        private static let disappearBlurRadius: CGFloat = 6
-
-        func configureAnimation(with type: AnimationType, countsDown: Bool = false) {
-            switch type {
-            case .appear:
-                scaleAnimation = .init(value: Self.smallestScale, velocity: .zero, target: 1)
-                scale = Self.smallestScale
-                let offset: CGFloat = countsDown ? -1 : 1
-                offsetAnimation = .init(value: offset, velocity: .zero, target: 0)
-                self.offset = offset
-                opacityAnimation = .init(value: 0, velocity: .zero, target: 1)
-                opacity = 0
-                blurRadiusAnimation = .init(value: Self.appearBlurRadius, velocity: 0, target: 0)
-                blurRadius = Self.appearBlurRadius
-                updateTransform()
-            case .disappear:
-                var scaleAnimation = scaleAnimation ?? .init(value: scale, velocity: .zero, target: Self.smallestScale)
-                scaleAnimation.target = Self.smallestScale
-                self.scaleAnimation = scaleAnimation
-
-                let offset: CGFloat = countsDown ? 1 : -1
-                var offsetAnimation = offsetAnimation ?? .init(value: self.offset, velocity: .zero, target: offset)
-                offsetAnimation.target = offset
-                self.offsetAnimation = offsetAnimation
-
-                var opacityAnimation = opacityAnimation ?? .init(value: opacity, velocity: .zero, target: 0)
-                opacityAnimation.target = 0
-                self.opacityAnimation = opacityAnimation
-
-                var blurRadiusAnimation = blurRadiusAnimation ?? .init(value: blurRadius, velocity: 0, target: Self.disappearBlurRadius)
-                blurRadiusAnimation.target = Self.disappearBlurRadius
-                self.blurRadiusAnimation = blurRadiusAnimation
-            }
-        }
-    }
-
-    fileprivate protocol LayerStateDelegate: AnyObject {
-        func updateFrame(with state: NumericTransitionTextLayer.LayerState)
     }
 }
 
-extension NumericTransitionTextLayer: NumericTransitionTextLayer.LayerStateDelegate {
-
-    fileprivate func updateFrame(with state: LayerState) {
-        guard let textBounds = state.textBounds else {
-            return
-        }
-
-        let anchor: CGPoint =
-            switch alignment {
-            case .left:
-                .init(x: 0, y: bounds.midY)
-            case .center:
-                .init(x: bounds.midX, y: bounds.midY)
-            case .right:
-                .init(x: bounds.maxX, y: bounds.midY)
-            }
-
-        let layer = state.layer
-        let frame = state.presentationFrame
-        let transform = layer.transform
-        layer.transform = CATransform3DIdentity
-        let targetFrame = frame.offsetBy(dx: anchor.x, dy: anchor.y - textBounds.midY)
-        let currentSize = layer.bounds.size
-        if currentSize != frame.size {
-            layer.frame = targetFrame
+extension NumericTransitionTextLayer: DisplayLinkDelegate {
+    public func synchronization(context: DisplayLinkCallbackContext) {
+        if Thread.isMainThread {
+            animateTransition(with: context)
         } else {
-            layer.position = .init(x: targetFrame.midX, y: targetFrame.midY)
+            DispatchQueue.main.async {
+                self.animateTransition(with: context)
+            }
         }
-        layer.transform = transform
     }
 }
