@@ -23,7 +23,8 @@ public final class NumericTransitionTextLayer: CALayer {
 
     public var textColor: PlatformColor? {
         didSet {
-            colorAnimation.target = textColor?.resolvedRgbColor(with: effectiveAppearance) ?? defaultTextColor.resolvedRgbColor(with: effectiveAppearance)
+            colorAnimation.target = textColor?.resolvedRgbColor(with: effectiveAppearance)
+                ?? defaultTextColor.resolvedRgbColor(with: effectiveAppearance)
         }
     }
 
@@ -113,7 +114,7 @@ public final class NumericTransitionTextLayer: CALayer {
 }
 
 extension NumericTransitionTextLayer {
-    private func makeLayerState() -> State {
+    func makeLayerState() -> State {
         let layer = CALayer()
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
@@ -133,7 +134,7 @@ extension NumericTransitionTextLayer {
         return state
     }
 
-    private func stateContainer(for character: Character) -> ArrayContainer<State> {
+    func stateContainer(for character: Character) -> ArrayContainer<State> {
         if let container = characterStates[character] {
             return container
         }
@@ -143,7 +144,7 @@ extension NumericTransitionTextLayer {
         return container
     }
 
-    private func updateText() {
+    func updateText() {
         let attributedText = NSAttributedString(
             string: text ?? "",
             attributes: [
@@ -156,75 +157,75 @@ extension NumericTransitionTextLayer {
         let delayInterval: TimeInterval = (length == 0 ? 0 : 0.18 / length)
         textBounds = .zero
         layerStates.forEach { $1.invalid = true }
-        if let text {
-            var needsAppearCount = 0
-            let boundingRect = textLayoutManager.boundingRect(
-                forGlyphRange: NSRange(text.startIndex..., in: text),
-                in: textContainer
-            )
-            textBounds = boundingRect
-            nextCharacter: for (index, character) in text.enumerated() {
-                let range = NSRange(location: index, length: 1)
-                let anchor: CGFloat =
-                    switch alignment {
-                    case .left:
-                        0
-                    case .center:
-                        boundingRect.midX
-                    case .right:
-                        boundingRect.maxX
+        guard let text else { return }
+
+        var needsAppearCount = 0
+        let boundingRect = textLayoutManager.boundingRect(
+            forGlyphRange: NSRange(text.startIndex..., in: text),
+            in: textContainer
+        )
+        textBounds = boundingRect
+        nextCharacter: for (index, character) in text.enumerated() {
+            let range = NSRange(location: index, length: 1)
+            let anchor: CGFloat =
+                switch alignment {
+                case .left:
+                    0
+                case .center:
+                    boundingRect.midX
+                case .right:
+                    boundingRect.maxX
+                }
+            let rect = textLayoutManager.boundingRect(forGlyphRange: range, in: textContainer)
+                .offsetBy(dx: -anchor, dy: 0)
+
+            if let states = characterStates[character] {
+                for state in states {
+                    if !state.invalid {
+                        continue
                     }
-                let rect = textLayoutManager.boundingRect(forGlyphRange: range, in: textContainer)
-                    .offsetBy(dx: -anchor, dy: 0)
 
-                if let states = characterStates[character] {
-                    for state in states {
-                        if !state.invalid {
-                            continue
-                        }
+                    let isInVisibleAnimation =
+                        state.scaleAnimation != nil
+                            || state.opacityAnimation != nil
+                            || state.blurRadiusAnimation != nil
+                            || state.offsetAnimation != nil
 
-                        let isInVisibleAnimation =
-                            state.scaleAnimation != nil
-                                || state.opacityAnimation != nil
-                                || state.blurRadiusAnimation != nil
-                                || state.offsetAnimation != nil
-
-                        let isAppearing =
-                            state.scaleAnimation?.target == 1
-                                || state.opacityAnimation?.target == 1
-                                || state.blurRadiusAnimation?.target == 0
-                                || state.offsetAnimation?.target == 0
-                        if isAppearing || !isInVisibleAnimation {
-                            state.range = range
-                            state.character = character
-                            state.textBounds = boundingRect
-                            state.frame = rect
-                            state.isDirty = true
-                            state.invalid = false
-                            state.layer.setNeedsDisplay()
-                            continue nextCharacter
-                        }
+                    let isAppearing =
+                        state.scaleAnimation?.target == 1
+                            || state.opacityAnimation?.target == 1
+                            || state.blurRadiusAnimation?.target == 0
+                            || state.offsetAnimation?.target == 0
+                    if isAppearing || !isInVisibleAnimation {
+                        state.range = range
+                        state.character = character
+                        state.textBounds = boundingRect
+                        state.frame = rect
+                        state.isDirty = true
+                        state.invalid = false
+                        state.layer.setNeedsDisplay()
+                        continue nextCharacter
                     }
                 }
-
-                let state = makeLayerState()
-                state.range = range
-                state.character = character
-                let layer = state.layer
-                addSublayer(layer)
-                state.presentationFrame = rect
-                state.textBounds = boundingRect
-                state.frame = rect
-                state.delay = TimeInterval(needsAppearCount) * delayInterval
-                state.configureAnimation(with: .appear, countsDown: countsDown)
-                needsAppearCount += 1
-                layerStates[layer] = state
-
-                let container = stateContainer(for: character)
-                container.append(state)
-
-                layer.setNeedsDisplay()
             }
+
+            let state = makeLayerState()
+            state.range = range
+            state.character = character
+            let layer = state.layer
+            addSublayer(layer)
+            state.presentationFrame = rect
+            state.textBounds = boundingRect
+            state.frame = rect
+            state.delay = TimeInterval(needsAppearCount) * delayInterval
+            state.configureAnimation(with: .appear, countsDown: countsDown)
+            needsAppearCount += 1
+            layerStates[layer] = state
+
+            let container = stateContainer(for: character)
+            container.append(state)
+
+            layer.setNeedsDisplay()
         }
 
         layerStates.filter {
@@ -243,11 +244,11 @@ extension NumericTransitionTextLayer {
         }
     }
 
-    private func updateLayerColor(_ layer: CALayer) {
+    func updateLayerColor(_ layer: CALayer) {
         layer.setValue(colorAnimation.value.cgColor, forKeyPath: ColorAddFilter.inputColorKeyPath)
     }
 
-    private func animateTransition(with context: DisplayLinkCallbackContext) {
+    func animateTransition(with context: DisplayLinkCallbackContext) {
         #if DEBUG && canImport(UIKit)
             let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
         #else
@@ -298,11 +299,9 @@ extension NumericTransitionTextLayer {
         }
     }
 
-    private func updateLayerState(_ state: State, deltaTime: TimeInterval) {
+    func updateLayerState(_ state: State, deltaTime: TimeInterval) {
         state.delay -= deltaTime
-        if state.delay > 0 {
-            return
-        }
+        if state.delay > 0 { return }
 
         if var frameAnimation = state.frameAnimation {
             smoothSpring.update(
@@ -406,6 +405,7 @@ extension NumericTransitionTextLayer: CALayerDelegate {
 
         let contentsScale: CGFloat = (delegate as? PlatformView)?
             .animationScalingFactor ?? 2
+        
         if layer.contentsScale != contentsScale {
             layer.contentsScale = contentsScale
             DispatchQueue.main.async { layer.setNeedsDisplay() }
