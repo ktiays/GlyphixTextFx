@@ -85,6 +85,11 @@ public final class NumericTransitionTextLayer: CALayer {
         commonInit()
     }
 
+    public override init(layer: Any) {
+        super.init(layer: layer)
+        commonInit()
+    }
+
     private func commonInit() {
         displayLink.delegatingObject(self)
     }

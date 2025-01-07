@@ -46,18 +46,21 @@ open class NumericTransitionLabel: PlatformView {
 
     public init(font: PlatformFont = .preferredFont(forTextStyle: .body)) {
         super.init(frame: .zero)
+        commonInit(font: font)
+    }
 
+    public required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    func commonInit(font: PlatformFont = .preferredFont(forTextStyle: .body)) {
         let wantsLayerSelector = NSSelectorFromString("setWantsLayer:")
         if responds(to: wantsLayerSelector) {
             perform(wantsLayerSelector, with: true)
         }
 
         textLayer.font = font
-    }
-
-    @available(*, unavailable)
-    public required init?(coder _: NSCoder) {
-        fatalError()
     }
 
     #if canImport(UIKit)
