@@ -401,8 +401,12 @@ extension NumericTransitionTextLayer: CALayerDelegate {
         let range = state.range
         if range.length == 0 { return }
 
-        let contentsScale: CGFloat =
-            (delegate as? PlatformView)?
+        // state mismatch, delay next drawing
+        guard let storage = textLayoutManager.textStorage,
+              storage.string.count >= range.upperBound
+        else { return }
+
+        let contentsScale: CGFloat = (delegate as? PlatformView)?
             .animationScalingFactor ?? 2
 
         if layer.contentsScale != contentsScale {
