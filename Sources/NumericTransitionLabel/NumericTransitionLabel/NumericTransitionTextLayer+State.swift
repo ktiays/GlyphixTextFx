@@ -93,8 +93,13 @@ extension NumericTransitionTextLayer {
         }
 
         private static let smallestScale: CGFloat = 0.4
-        private static let appearBlurRadius: CGFloat = 9
-        private static let disappearBlurRadius: CGFloat = 6
+        
+        private var appearBlurRadius: CGFloat {
+            log(frame.height) / log(3)
+        }
+        private var disappearBlurRadius: CGFloat {
+            log(frame.height)
+        }
 
         func configureAnimation(with type: AnimationType, countsDown: Bool = false) {
             switch type {
@@ -106,8 +111,8 @@ extension NumericTransitionTextLayer {
                 self.offset = offset
                 opacityAnimation = .init(value: 0, velocity: .zero, target: 1)
                 opacity = 0
-                blurRadiusAnimation = .init(value: Self.appearBlurRadius, velocity: 0, target: 0)
-                blurRadius = Self.appearBlurRadius
+                blurRadiusAnimation = .init(value: appearBlurRadius, velocity: 0, target: 0)
+                blurRadius = appearBlurRadius
                 updateTransform()
             case .disappear:
                 var scaleAnimation = scaleAnimation ?? .init(value: scale, velocity: .zero, target: Self.smallestScale)
@@ -123,8 +128,8 @@ extension NumericTransitionTextLayer {
                 opacityAnimation.target = 0
                 self.opacityAnimation = opacityAnimation
 
-                var blurRadiusAnimation = blurRadiusAnimation ?? .init(value: blurRadius, velocity: 0, target: Self.disappearBlurRadius)
-                blurRadiusAnimation.target = Self.disappearBlurRadius
+                var blurRadiusAnimation = blurRadiusAnimation ?? .init(value: blurRadius, velocity: 0, target: disappearBlurRadius)
+                blurRadiusAnimation.target = disappearBlurRadius
                 self.blurRadiusAnimation = blurRadiusAnimation
             }
         }

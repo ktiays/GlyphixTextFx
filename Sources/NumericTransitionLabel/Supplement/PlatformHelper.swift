@@ -59,7 +59,9 @@
         public typealias PlatformFont = NSFont
         public typealias PlatformColor = NSColor
         public typealias PlatformView = NSView
+
         typealias Appearance = NSAppearance
+
         public extension PlatformColor {
             static var numericLabelColor: PlatformColor = .labelColor
         }

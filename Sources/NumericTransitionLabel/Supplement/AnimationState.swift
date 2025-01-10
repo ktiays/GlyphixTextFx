@@ -43,7 +43,7 @@ struct AnimationState<T>: VectorArithmetic where T: VectorArithmetic {
 
 extension AnimationState where T: ApproximatelyEqual {
     var isCompleted: Bool {
-        T.approximatelyEqual(value, target)
+        T.approximatelyEqual(value, target) && T.approximatelyEqual(velocity, .zero)
     }
 }
 

@@ -70,7 +70,7 @@ public final class NumericTransitionTextLayer: CALayer {
     private let smoothSpring: Spring = .smooth
     private let snappySpring: Spring = .init(duration: 0.3)
     private let phoneSpring: Spring = .smooth(duration: 0.42)
-    private let bouncySpring: Spring = .init(response: 0.4, dampingRatio: 0.66)
+    private let bouncySpring: Spring = .init(response: 0.42, dampingRatio: 0.8)
     private var effectiveAppearance: Appearance = .initialValue
 
     private let displayLink = DisplayLink()
@@ -150,13 +150,10 @@ extension NumericTransitionTextLayer {
             attributes: [.font: font]
         )
         textStorage.setAttributedString(attributedText)
-
-        let length = TimeInterval(attributedText.length)
-        let delayInterval: TimeInterval = (length == 0 ? 0 : 0.18 / length)
         textBounds = .zero
         layerStates.forEach { $1.invalid = true }
 
-        var needsAppearCount = 0
+        var stateNeedsAppearAnimation: [LayerState] = []
         let boundingRect = textLayoutManager.boundingRect(
             forGlyphRange: NSRange(text.startIndex..., in: text),
             in: textContainer
@@ -214,15 +211,20 @@ extension NumericTransitionTextLayer {
             state.presentationFrame = rect
             state.textBounds = boundingRect
             state.frame = rect
-            state.delay = TimeInterval(needsAppearCount) * delayInterval
-            state.configureAnimation(with: .appear, countsDown: countsDown)
-            needsAppearCount += 1
+            stateNeedsAppearAnimation.append(state)
             layerStates[layer] = state
 
             let container = stateContainer(for: character)
             container.append(state)
 
             layer.setNeedsDisplay()
+        }
+        
+        let length = TimeInterval(stateNeedsAppearAnimation.count)
+        let delayInterval: TimeInterval = (length == 0 ? 0 : 0.2 / length)
+        for (index, state) in stateNeedsAppearAnimation.enumerated() {
+            state.delay = TimeInterval(index) * delayInterval
+            state.configureAnimation(with: .appear, countsDown: countsDown)
         }
 
         layerStates.filter {
@@ -333,7 +335,8 @@ extension NumericTransitionTextLayer {
         }
 
         if var offsetAnimation = state.offsetAnimation {
-            bouncySpring.update(
+            let bouncy = Spring(response: 0.4, dampingRatio: 0.54)
+            bouncy.update(
                 value: &offsetAnimation.value,
                 velocity: &offsetAnimation.velocity,
                 target: offsetAnimation.target,
