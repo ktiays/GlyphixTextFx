@@ -23,7 +23,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ktiays/Respring", from: "1.0.0"),
-        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.3"),
+        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.4"),
     ],
     targets: [
         .target(
@@ -31,7 +31,8 @@ let package = Package(
             dependencies: ["Respring", "MSDisplayLink"]
         ),
         .target(
-            name: "NumericLabel", dependencies: ["NumericTransitionLabel"]
+            name: "NumericLabel",
+            dependencies: ["NumericTransitionLabel"]
         ),
     ]
 )
