@@ -194,6 +194,12 @@ extension NumericTransitionTextLayer {
                         state.range = range
                         state.character = character
                         state.textBounds = boundingRect
+                        if state.frame.size != rect.size {
+                            // A character may have different sizes in different contexts. When reusing a character layer for frame animation,
+                            // to ensure the character is drawn correctly at the new size, it is necessary to immediately adjust the layer's
+                            // size to the final dimensions and redraw it at that size.
+                            state.presentationFrame.size = rect.size
+                        }
                         state.frame = rect
                         state.isDirty = true
                         state.invalid = false
@@ -220,27 +226,31 @@ extension NumericTransitionTextLayer {
             layer.setNeedsDisplay()
         }
         
-        let length = TimeInterval(stateNeedsAppearAnimation.count)
+        let invalidStates = layerStates.filter {
+            $1.invalid
+        }
+        
+        let appearCount = stateNeedsAppearAnimation.count
+        let disappearCount = invalidStates.count
+        let length = TimeInterval(max(appearCount, disappearCount))
         let delayInterval: TimeInterval = (length == 0 ? 0 : 0.2 / length)
         for (index, state) in stateNeedsAppearAnimation.enumerated() {
             state.delay = TimeInterval(index) * delayInterval
             state.configureAnimation(with: .appear, countsDown: countsDown)
         }
 
-        layerStates.filter {
-            $1.invalid
-        }
-        .sorted {
-            $0.1.range.location < $1.1.range.location
-        }
-        .enumerated()
-        .forEach {
-            let state = $1.1
-            if !state.isAnimating {
-                state.delay = TimeInterval($0) * delayInterval
+        invalidStates
+            .sorted {
+                $0.1.range.location < $1.1.range.location
             }
-            state.configureAnimation(with: .disappear, countsDown: countsDown)
-        }
+            .enumerated()
+            .forEach {
+                let state = $1.1
+                if !state.isAnimating {
+                    state.delay = TimeInterval($0) * delayInterval
+                }
+                state.configureAnimation(with: .disappear, countsDown: countsDown)
+            }
     }
 
     func updateLayerColor(_ layer: CALayer) {
@@ -424,7 +434,6 @@ extension NumericTransitionTextLayer: CALayerDelegate {
         ctx.setShouldAntialias(true)
         ctx.setAllowsFontSmoothing(true)
         ctx.setShouldSmoothFonts(true)
-
         ctx.draw {
             let anchor: CGFloat =
                 switch alignment {
@@ -440,8 +449,8 @@ extension NumericTransitionTextLayer: CALayerDelegate {
                 forGlyphRange: range,
                 at: .init(x: -origin.x, y: -origin.y)
             )
-            ctx.restoreGState()
         }
+        ctx.restoreGState()
     }
 }
 
