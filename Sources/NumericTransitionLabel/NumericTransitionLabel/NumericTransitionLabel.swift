@@ -7,13 +7,11 @@ import Foundation
 
 @MainActor
 open class NumericTransitionLabel: PlatformView {
+
     public typealias TextAlignment = NumericTransitionTextLayer.TextAlignment
 
-    #if canImport(UIKit)
-    #else
-        #if canImport(AppKit)
-            override public var isFlipped: Bool { true }
-        #endif
+    #if os(macOS)
+    override public var isFlipped: Bool { true }
     #endif
 
     public var text: String {
@@ -63,25 +61,39 @@ open class NumericTransitionLabel: PlatformView {
         textLayer.font = font
     }
 
-    #if canImport(UIKit)
-        override public class var layerClass: AnyClass {
-            NumericTransitionTextLayer.self
+    #if os(iOS)
+    override public class var layerClass: AnyClass {
+        NumericTransitionTextLayer.self
+    }
+
+    override open func traitCollectionDidChange(_: UITraitCollection?) {
+        textLayer.effectiveAppearanceDidChange(traitCollection)
+    }
+
+    open override func willMove(toSuperview newSuperview: UIView?) {
+        super.willMove(toSuperview: newSuperview)
+
+        if let newSuperview {
+            textLayer.effectiveAppearanceDidChange(newSuperview.traitCollection)
         }
+    }
+    #elseif os(macOS)
+    override public func makeBackingLayer() -> CALayer {
+        NumericTransitionTextLayer()
+    }
 
-        override open func traitCollectionDidChange(_: UITraitCollection?) {
-            textLayer.effectiveAppearanceDidChange(traitCollection)
+    override public func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+
+        textLayer.effectiveAppearanceDidChange(effectiveAppearance)
+    }
+    
+    open override func viewWillMove(toSuperview newSuperview: NSView?) {
+        super.viewWillMove(toSuperview: newSuperview)
+
+        if let newSuperview {
+            textLayer.effectiveAppearanceDidChange(newSuperview.effectiveAppearance)
         }
-    #else
-        #if canImport(AppKit)
-            override public func makeBackingLayer() -> CALayer {
-                NumericTransitionTextLayer()
-            }
-
-            override public func viewDidChangeEffectiveAppearance() {
-                super.viewDidChangeEffectiveAppearance()
-
-                textLayer.effectiveAppearanceDidChange(effectiveAppearance)
-            }
-        #endif
+    }
     #endif
 }

@@ -114,6 +114,7 @@ public final class NumericTransitionTextLayer: CALayer {
 }
 
 extension NumericTransitionTextLayer {
+    
     func makeLayerState() -> LayerState {
         let layer = CALayer()
         layer.delegate = self
