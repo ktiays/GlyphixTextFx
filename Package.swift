@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "NumericTransitionLabel",
+    name: "GlyphixTextFx",
     platforms: [
         .macOS(.v11),
         .iOS(.v13),
@@ -13,13 +13,9 @@ let package = Package(
     ],
     products: [
         .library(
-            name: "NumericTransitionLabel",
-            targets: ["NumericTransitionLabel"]
-        ),
-        .library(
-            name: "NumericLabel",
-            targets: ["NumericLabel"]
-        ),
+            name: "GlyphixTextFx",
+            targets: ["GlyphixTextFx"]
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/ktiays/Respring", from: "1.0.0"),
@@ -27,12 +23,8 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "NumericTransitionLabel",
+            name: "GlyphixTextFx",
             dependencies: ["Respring", "MSDisplayLink"]
-        ),
-        .target(
-            name: "NumericLabel",
-            dependencies: ["NumericTransitionLabel"]
-        ),
+        )
     ]
 )

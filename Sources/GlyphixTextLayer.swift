@@ -6,7 +6,7 @@
 import MSDisplayLink
 import Respring
 
-public final class NumericTransitionTextLayer: CALayer {
+public final class GlyphixTextLayer: CALayer {
 
     public var text: String = "" {
         didSet { updateText() }
@@ -113,8 +113,175 @@ public final class NumericTransitionTextLayer: CALayer {
     }
 }
 
-extension NumericTransitionTextLayer {
-    
+extension GlyphixTextLayer {
+
+    final class LayerState {
+
+        protocol Delegate: AnyObject {
+            func updateFrame(with state: GlyphixTextLayer.LayerState)
+        }
+
+        var frame: CGRect = .zero {
+            didSet {
+                if frame == presentationFrame {
+                    return
+                }
+                var animation: AnimationState<CGRect> = frameAnimation ?? .init(value: presentationFrame, velocity: .zero, target: frame)
+                animation.target = frame
+                frameAnimation = animation
+            }
+        }
+
+        var presentationFrame: CGRect = .zero {
+            didSet {
+                delegate?.updateFrame(with: self)
+            }
+        }
+
+        var frameAnimation: AnimationState<CGRect>?
+
+        var scale: CGFloat = 1
+        var scaleAnimation: AnimationState<CGFloat>?
+
+        var offset: CGFloat = 0
+        var offsetAnimation: AnimationState<CGFloat>?
+
+        var opacity: Float = 1 {
+            didSet { layer.opacity = opacity }
+        }
+
+        var opacityAnimation: AnimationState<Float>?
+
+        var blurRadius: CGFloat = 0 {
+            didSet {
+                layer.setValue(blurRadius, forKeyPath: GaussianBlurFilter.inputRadiusKeyPath)
+            }
+        }
+
+        var blurRadiusAnimation: AnimationState<CGFloat>?
+
+        var delay: TimeInterval = 0
+        var invalid: Bool = false
+        var isDirty: Bool = true
+
+        var isAnimating: Bool {
+            frameAnimation != nil
+                || scaleAnimation != nil
+                || offsetAnimation != nil
+                || opacityAnimation != nil
+                || blurRadiusAnimation != nil
+        }
+
+        var isVisible: Bool {
+            if let opacityAnimation {
+                return opacityAnimation.value >= 0.01
+            }
+            return opacity >= 0.01
+        }
+
+        let layer: CALayer
+
+        var range: NSRange = .init()
+        var character: Character?
+        var textBounds: CGRect?
+
+        weak var delegate: (any Delegate)?
+
+        init(layer: CALayer) {
+            self.layer = layer
+        }
+
+        func updateTransform() {
+            let transform = CATransform3DConcat(
+                CATransform3DMakeScale(scale, scale, 1),
+                CATransform3DMakeTranslation(0, offset * frame.height / 3, 0)
+            )
+            layer.transform = transform
+        }
+
+        enum AnimationType {
+            case appear
+            case disappear
+        }
+
+        private static let smallestScale: CGFloat = 0.4
+
+        private var appearBlurRadius: CGFloat {
+            log(frame.height) / log(3)
+        }
+        private var disappearBlurRadius: CGFloat {
+            log(frame.height)
+        }
+
+        func configureAnimation(with type: AnimationType, countsDown: Bool = false) {
+            switch type {
+            case .appear:
+                scaleAnimation = .init(value: Self.smallestScale, velocity: .zero, target: 1)
+                scale = Self.smallestScale
+                let offset: CGFloat = countsDown ? -1 : 1
+                offsetAnimation = .init(value: offset, velocity: .zero, target: 0)
+                self.offset = offset
+                opacityAnimation = .init(value: 0, velocity: .zero, target: 1)
+                opacity = 0
+                blurRadiusAnimation = .init(value: appearBlurRadius, velocity: 0, target: 0)
+                blurRadius = appearBlurRadius
+                updateTransform()
+            case .disappear:
+                var scaleAnimation = scaleAnimation ?? .init(value: scale, velocity: .zero, target: Self.smallestScale)
+                scaleAnimation.target = Self.smallestScale
+                self.scaleAnimation = scaleAnimation
+
+                let offset: CGFloat = countsDown ? 1 : -1
+                var offsetAnimation = offsetAnimation ?? .init(value: self.offset, velocity: .zero, target: offset)
+                offsetAnimation.target = offset
+                self.offsetAnimation = offsetAnimation
+
+                var opacityAnimation = opacityAnimation ?? .init(value: opacity, velocity: .zero, target: 0)
+                opacityAnimation.target = 0
+                self.opacityAnimation = opacityAnimation
+
+                var blurRadiusAnimation = blurRadiusAnimation ?? .init(value: blurRadius, velocity: 0, target: disappearBlurRadius)
+                blurRadiusAnimation.target = disappearBlurRadius
+                self.blurRadiusAnimation = blurRadiusAnimation
+            }
+        }
+    }
+}
+
+extension GlyphixTextLayer: GlyphixTextLayer.LayerState.Delegate {
+
+    func updateFrame(with state: LayerState) {
+        guard let textBounds = state.textBounds else {
+            return
+        }
+
+        let anchor: CGPoint =
+            switch alignment {
+            case .left:
+                .init(x: 0, y: bounds.midY)
+            case .center:
+                .init(x: bounds.midX, y: bounds.midY)
+            case .right:
+                .init(x: bounds.maxX, y: bounds.midY)
+            }
+
+        let layer = state.layer
+        let frame = state.presentationFrame
+        let transform = layer.transform
+        layer.transform = CATransform3DIdentity
+        let targetFrame = frame.offsetBy(dx: anchor.x, dy: anchor.y - textBounds.midY)
+        let currentSize = layer.bounds.size
+        if currentSize != frame.size {
+            layer.frame = targetFrame
+        } else {
+            layer.position = .init(x: targetFrame.midX, y: targetFrame.midY)
+        }
+        layer.transform = transform
+    }
+}
+
+extension GlyphixTextLayer {
+
     func makeLayerState() -> LayerState {
         let layer = CALayer()
         layer.delegate = self
@@ -226,11 +393,11 @@ extension NumericTransitionTextLayer {
 
             layer.setNeedsDisplay()
         }
-        
+
         let invalidStates = layerStates.filter {
             $1.invalid
         }
-        
+
         let appearCount = stateNeedsAppearAnimation.count
         let disappearCount = invalidStates.count
         let length = TimeInterval(max(appearCount, disappearCount))
@@ -400,7 +567,7 @@ extension NumericTransitionTextLayer {
 
 // MARK: - CALayerDelegate
 
-extension NumericTransitionTextLayer: CALayerDelegate {
+extension GlyphixTextLayer: CALayerDelegate {
 
     public func action(for _: CALayer, forKey _: String) -> (any CAAction)? {
         NSNull()
@@ -417,10 +584,11 @@ extension NumericTransitionTextLayer: CALayerDelegate {
 
         // state mismatch, delay next drawing
         guard let storage = textLayoutManager.textStorage,
-              storage.string.count >= range.upperBound
+            storage.string.count >= range.upperBound
         else { return }
 
-        let contentsScale: CGFloat = (delegate as? PlatformView)?
+        let contentsScale: CGFloat =
+            (delegate as? PlatformView)?
             .animationScalingFactor ?? 2
 
         if layer.contentsScale != contentsScale {
@@ -455,7 +623,7 @@ extension NumericTransitionTextLayer: CALayerDelegate {
     }
 }
 
-extension NumericTransitionTextLayer: DisplayLinkDelegate {
+extension GlyphixTextLayer: DisplayLinkDelegate {
 
     public func synchronization(context: DisplayLinkCallbackContext) {
         if Thread.isMainThread {

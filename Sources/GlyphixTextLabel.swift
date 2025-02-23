@@ -6,9 +6,9 @@
 import Foundation
 
 @MainActor
-open class NumericTransitionLabel: PlatformView {
+open class GlyphixTextLabel: PlatformView {
 
-    public typealias TextAlignment = NumericTransitionTextLayer.TextAlignment
+    public typealias TextAlignment = GlyphixTextLayer.TextAlignment
 
     #if os(macOS)
     override public var isFlipped: Bool { true }
@@ -38,8 +38,8 @@ open class NumericTransitionLabel: PlatformView {
         textLayer.textBounds.size
     }
 
-    private var textLayer: NumericTransitionTextLayer {
-        layer as! NumericTransitionTextLayer
+    private var textLayer: GlyphixTextLayer {
+        layer as! GlyphixTextLayer
     }
 
     public init(font: PlatformFont = .preferredFont(forTextStyle: .body)) {
@@ -53,20 +53,19 @@ open class NumericTransitionLabel: PlatformView {
     }
 
     func commonInit(font: PlatformFont = .preferredFont(forTextStyle: .body)) {
-        let wantsLayerSelector = NSSelectorFromString("setWantsLayer:")
-        if responds(to: wantsLayerSelector) {
-            perform(wantsLayerSelector, with: true)
-        }
+        #if os(macOS)
+        self.wantsLayer = true
+        #endif
 
         textLayer.font = font
     }
 
     #if os(iOS)
     override public class var layerClass: AnyClass {
-        NumericTransitionTextLayer.self
+        GlyphixTextLayer.self
     }
 
-    override open func traitCollectionDidChange(_: UITraitCollection?) {
+    override open func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         textLayer.effectiveAppearanceDidChange(traitCollection)
     }
 
@@ -79,7 +78,7 @@ open class NumericTransitionLabel: PlatformView {
     }
     #elseif os(macOS)
     override public func makeBackingLayer() -> CALayer {
-        NumericTransitionTextLayer()
+        GlyphixTextLayer()
     }
 
     override public func viewDidChangeEffectiveAppearance() {
@@ -87,7 +86,7 @@ open class NumericTransitionLabel: PlatformView {
 
         textLayer.effectiveAppearanceDidChange(effectiveAppearance)
     }
-    
+
     open override func viewWillMove(toSuperview newSuperview: NSView?) {
         super.viewWillMove(toSuperview: newSuperview)
 
