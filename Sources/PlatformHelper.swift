@@ -100,6 +100,12 @@ extension PlatformColor {
 }
 #endif
 
+extension CFRange {
+    static var zero: Self {
+        .init(location: 0, length: 0)
+    }
+}
+
 #if DEBUG && os(iOS)
 @_silgen_name("UIAnimationDragCoefficient") func UIAnimationDragCoefficient() -> Float
 #endif

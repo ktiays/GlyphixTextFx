@@ -3,17 +3,46 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
+import CoreText
 import MSDisplayLink
 import Respring
 
-public final class GlyphixTextLayer: CALayer {
+#if os(iOS)
+import UIKit
+#else
+import AppKit
+#endif
 
-    public var text: String = "" {
-        didSet { updateText() }
+open class GlyphixTextLayer: CALayer {
+
+    public var text: String? {
+        didSet {
+            if text == attributedText?.string {
+                return
+            }
+            attributedText = NSAttributedString(
+                string: text ?? .init(),
+                attributes: [.font: font]
+            )
+        }
+    }
+    private var attributedText: NSAttributedString? {
+        didSet {
+            if let attributedText {
+                ctFramesetter = CTFramesetterCreateWithAttributedString(attributedText)
+                textStorage.setAttributedString(attributedText)
+            } else {
+                ctFramesetter = nil
+            }
+            updateTextLayout()
+        }
     }
 
-    public var font: PlatformFont = .preferredFont(forTextStyle: .body) {
-        didSet { updateText() }
+    public var font: PlatformFont?
+    private let defaultFont: PlatformFont = .systemFont(ofSize: PlatformFont.labelFontSize)
+
+    private var effectiveFont: PlatformFont {
+        font ?? defaultFont
     }
 
     public var textColor: PlatformColor = .numericLabelColor {
@@ -27,27 +56,44 @@ public final class GlyphixTextLayer: CALayer {
         velocity: .zero,
         target: textColor.resolvedRgbColor(with: effectiveAppearance)
     )
+
     public var countsDown: Bool = false
 
+    /// Constants that specify text alignment.
     public enum TextAlignment {
+        /// Text is left-aligned.
         case left
+        /// Text is center-aligned.
         case center
+        /// Text is right-aligned.
         case right
     }
 
     public var alignment: TextAlignment = .center {
-        didSet { updateText() }
+        didSet { updateTextLayout() }
     }
 
-    private(set) var textBounds: CGRect = .zero {
+    /// The maximum number of lines for rendering text.
+    public var numberOfLines: Int = 1 {
         didSet {
-            guard let view = delegate as? PlatformView else { return }
-            view.invalidateIntrinsicContentSize()
+            if oldValue == numberOfLines {
+                return
+            }
+            updateTextLayout()
         }
     }
 
-    private lazy var defaultFont: PlatformFont = .systemFont(ofSize: PlatformFont.labelFontSize)
+    /// A Boolean value that indicates whether views should disable animations.
+    public var disablesAnimations: Bool = false
 
+    /// The preferred maximum width, in points, for a multiline label.
+    public var preferredMaxLayoutWidth: CGFloat = .greatestFiniteMagnitude
+
+    private var containerBounds: CGRect = .zero
+
+    private var ctFrame: CTFrame?
+    private var ctFramesetter: CTFramesetter?
+    private var lines: [CTLine] = []
     private lazy var textContainer: NSTextContainer = .init(
         size: .init(
             width: CGFloat.greatestFiniteMagnitude,
@@ -59,14 +105,14 @@ public final class GlyphixTextLayer: CALayer {
         let manager = NSLayoutManager()
         manager.addTextContainer(textContainer)
         textContainer.lineFragmentPadding = 0
-        textContainer.maximumNumberOfLines = 0
-        textContainer.lineBreakMode = .byWordWrapping
+        textContainer.maximumNumberOfLines = 1
+        textContainer.lineBreakMode = .byTruncatingTail
         textStorage.addLayoutManager(manager)
         return manager
     }()
 
     private var layerStates: [CALayer: LayerState] = [:]
-    private var characterStates: [Character: ArrayContainer<LayerState>] = [:]
+    private var glyphStates: [String: ArrayContainer<LayerState>] = [:]
     private let smoothSpring: Spring = .smooth
     private let snappySpring: Spring = .init(duration: 0.3)
     private let phoneSpring: Spring = .smooth(duration: 0.42)
@@ -94,12 +140,19 @@ public final class GlyphixTextLayer: CALayer {
         displayLink.delegatingObject(self)
     }
 
-    override public func action(forKey _: String) -> (any CAAction)? {
+    override public func action(forKey key: String) -> (any CAAction)? {
         NSNull()
     }
-
+    
     override public func layoutSublayers() {
         super.layoutSublayers()
+
+        if containerBounds != bounds {
+            containerBounds = bounds
+            updateTextLayout()
+            setNeedsLayout()
+            return
+        }
 
         for (_, state) in layerStates {
             updateFrame(with: state)
@@ -110,6 +163,10 @@ public final class GlyphixTextLayer: CALayer {
         effectiveAppearance = appearance
         let color = textColor
         textColor = color
+    }
+
+    private func makeAttributedString(_ text: String) -> NSAttributedString {
+        .init(string: text, attributes: [.font: effectiveFont])
     }
 }
 
@@ -181,9 +238,12 @@ extension GlyphixTextLayer {
 
         let layer: CALayer
 
-        var range: NSRange = .init()
-        var character: Character?
-        var textBounds: CGRect?
+        var key: String?
+        var font: CTFont?
+        var glyph: CGGlyph?
+        var boundingRect: CGRect = .zero
+        var descent: CGFloat = 0
+        var textBounds: CGRect = .zero
 
         weak var delegate: (any Delegate)?
 
@@ -251,25 +311,23 @@ extension GlyphixTextLayer {
 extension GlyphixTextLayer: GlyphixTextLayer.LayerState.Delegate {
 
     func updateFrame(with state: LayerState) {
-        guard let textBounds = state.textBounds else {
-            return
-        }
-
-        let anchor: CGPoint =
-            switch alignment {
-            case .left:
-                .init(x: 0, y: bounds.midY)
-            case .center:
-                .init(x: bounds.midX, y: bounds.midY)
-            case .right:
-                .init(x: bounds.maxX, y: bounds.midY)
-            }
-
         let layer = state.layer
         let frame = state.presentationFrame
         let transform = layer.transform
         layer.transform = CATransform3DIdentity
-        let targetFrame = frame.offsetBy(dx: anchor.x, dy: anchor.y - textBounds.midY)
+        let textBounds = state.textBounds
+
+        let offsetX: CGFloat =
+            switch alignment {
+            case .left:
+                0
+            case .center:
+                (bounds.width - textBounds.width) / 2
+            case .right:
+                bounds.width - textBounds.width
+            }
+        let targetFrame = frame.offsetBy(dx: max(0, offsetX), dy: (bounds.height - textBounds.height) / 2)
+
         let currentSize = layer.bounds.size
         if currentSize != frame.size {
             layer.frame = targetFrame
@@ -282,7 +340,7 @@ extension GlyphixTextLayer: GlyphixTextLayer.LayerState.Delegate {
 
 extension GlyphixTextLayer {
 
-    func makeLayerState() -> LayerState {
+    private func makeLayerState() -> LayerState {
         let layer = CALayer()
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
@@ -302,96 +360,168 @@ extension GlyphixTextLayer {
         return state
     }
 
-    func stateContainer(for character: Character) -> ArrayContainer<LayerState> {
-        if let container = characterStates[character] {
+    private func stateContainer(for glyph: String) -> ArrayContainer<LayerState> {
+        if let container = glyphStates[glyph] {
             return container
         }
 
         let container = ArrayContainer<LayerState>()
-        characterStates[character] = container
+        glyphStates[glyph] = container
         return container
     }
 
-    func updateText() {
-        let attributedText = NSAttributedString(
-            string: text,
-            attributes: [.font: font]
-        )
-        textStorage.setAttributedString(attributedText)
-        textBounds = .zero
+    private func updateTextLayout() {
+        ctFrame = nil
+        lines.removeAll()
+        let containerPath = CGPath(rect: containerBounds, transform: nil)
+        if let ctFramesetter {
+            let ctFrame = CTFramesetterCreateFrame(ctFramesetter, .zero, containerPath, nil)
+            self.ctFrame = ctFrame
+            lines = CTFrameGetLines(ctFrame) as! [CTLine]
+            var isLastLineTruncated: Bool = false
+            if numberOfLines > 0 && lines.count > numberOfLines {
+                lines.removeSubrange(numberOfLines...)
+                isLastLineTruncated = true
+            }
+            if !isLastLineTruncated {
+                let visibleRange = CTFrameGetVisibleStringRange(ctFrame)
+                isLastLineTruncated = (visibleRange.length != attributedText?.length && !lines.isEmpty)
+            }
+
+            if let attributedText, isLastLineTruncated, let lastLine = lines.last {
+                // Truncation processing is required for the last line.
+                let lineCFRange = CTLineGetStringRange(lastLine)
+                let lineRange = NSRange(location: lineCFRange.location, length: lineCFRange.length)
+                let lastLineString: NSMutableAttributedString = .init(attributedString: attributedText.attributedSubstring(from: lineRange))
+                let truncationTokenString = makeAttributedString("\u{2026}")
+                lastLineString.append(truncationTokenString)
+                let line = CTLineCreateWithAttributedString(lastLineString)
+                let truncationLine = CTLineCreateWithAttributedString(truncationTokenString)
+                if let truncatedLine = CTLineCreateTruncatedLine(line, containerBounds.width, .end, truncationLine) {
+                    lines[lines.count - 1] = truncatedLine
+                }
+            }
+        }
         layerStates.forEach { $1.invalid = true }
 
         var stateNeedsAppearAnimation: [LayerState] = []
-        let boundingRect = textLayoutManager.boundingRect(
-            forGlyphRange: NSRange(text.startIndex..., in: text),
-            in: textContainer
-        )
-        textBounds = boundingRect
-        nextCharacter: for (index, character) in text.enumerated() {
-            let range = NSRange(location: index, length: 1)
-            let anchor: CGFloat =
-                switch alignment {
-                case .left:
-                    0
-                case .center:
-                    boundingRect.midX
-                case .right:
-                    boundingRect.maxX
-                }
-            let rect = textLayoutManager.boundingRect(forGlyphRange: range, in: textContainer)
-                .offsetBy(dx: -anchor, dy: 0)
+        if let text, let ctFrame {
+            var lineBoundsList: [CGRect] = []
+            var descents: [CGFloat] = []
+            var textBounds: CGRect = .zero
+            for (index, line) in lines.enumerated() {
+                var ascent: CGFloat = 0
+                var descent: CGFloat = 0
+                let width = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
+                let height = ascent + descent
+                textBounds.size.width = max(textBounds.width, width)
+                textBounds.size.height += height
+                lineBoundsList.append(.init(x: 0, y: textBounds.height - height, width: width, height: height))
+                descents.append(descent)
+            }
 
-            if let states = characterStates[character] {
-                for state in states {
-                    if !state.invalid {
-                        continue
-                    }
-
-                    let isInVisibleAnimation =
-                        state.scaleAnimation != nil
-                        || state.opacityAnimation != nil
-                        || state.blurRadiusAnimation != nil
-                        || state.offsetAnimation != nil
-
-                    let isAppearing =
-                        state.scaleAnimation?.target == 1
-                        || state.opacityAnimation?.target == 1
-                        || state.blurRadiusAnimation?.target == 0
-                        || state.offsetAnimation?.target == 0
-                    if isAppearing || !isInVisibleAnimation {
-                        state.range = range
-                        state.character = character
-                        state.textBounds = boundingRect
-                        if state.frame.size != rect.size {
-                            // A character may have different sizes in different contexts. When reusing a character layer for frame animation,
-                            // to ensure the character is drawn correctly at the new size, it is necessary to immediately adjust the layer's
-                            // size to the final dimensions and redraw it at that size.
-                            state.presentationFrame.size = rect.size
+            for (lineIndex, line) in lines.enumerated() {
+                let lineBounds = lineBoundsList[lineIndex]
+                let lineOrigin = lineBounds.origin
+                let descent = descents[lineIndex]
+                let runs = CTLineGetGlyphRuns(line) as! [CTRun]
+                for run in runs {
+                    let attributes = CTRunGetAttributes(run) as! [NSAttributedString.Key: Any]
+                    let platformFont = attributes[.font] as? PlatformFont
+                    let font = (platformFont ?? effectiveFont) as CTFont
+                    let cgFont = CTFontCopyGraphicsFont(font, nil)
+                    let glyphCount = CTRunGetGlyphCount(run)
+                    var positions: [CGPoint] = .init(repeating: .zero, count: glyphCount)
+                    CTRunGetPositions(run, .zero, &positions)
+                    // Stores the glyph advances (widths), representing the horizontal distance to
+                    // the next character for precise text layout and width calculation.
+                    var advances: [CGSize] = .init(repeating: .zero, count: glyphCount)
+                    CTRunGetAdvances(run, .zero, &advances)
+                    
+                    var glyphs = [CGGlyph](repeating: 0, count: glyphCount)
+                    CTRunGetGlyphs(run, .zero, &glyphs)
+                    var boundingRects: [CGRect] = .init(repeating: .zero, count: glyphCount)
+                    CTFontGetBoundingRectsForGlyphs(font, .default, &glyphs, &boundingRects, glyphCount)
+                    nextGlyph: for (glyphIndex, var glyph) in glyphs.enumerated() {
+                        var stateKey: String = .init()
+                        if let glyphName = cgFont.name(for: glyph) as? String, !glyphName.isEmpty {
+                            stateKey = glyphName
                         }
+
+                        let position = positions[glyphIndex]
+                        let advance = advances[glyphIndex]
+                        let boundingRect = boundingRects[glyphIndex]
+                        // Correction value in the x-axis direction, as character rendering may exceed the grid area,
+                        // requiring the left-side x to store a value indicating the necessary offset.
+                        let xCompensation = min(0, boundingRect.minX)
+                        let bottomExtends = min(0, boundingRect.minY + descent)
+                        let topExtends = max(0, boundingRect.maxY + descent - lineBounds.height)
+                        let rect = CGRect(
+                            x: lineOrigin.x + position.x + xCompensation,
+                            y: lineOrigin.y + position.y - topExtends,
+                            width: ceil(max(advance.width, boundingRect.maxX)),
+                            height: lineBounds.height - bottomExtends
+                        )
+
+                        if let states = glyphStates[stateKey], !stateKey.isEmpty {
+                            for state in states {
+                                if !state.invalid {
+                                    continue
+                                }
+
+                                let isInVisibleAnimation =
+                                    state.scaleAnimation != nil
+                                    || state.opacityAnimation != nil
+                                    || state.blurRadiusAnimation != nil
+                                    || state.offsetAnimation != nil
+
+                                let isAppearing =
+                                    state.scaleAnimation?.target == 1
+                                    || state.opacityAnimation?.target == 1
+                                    || state.blurRadiusAnimation?.target == 0
+                                    || state.offsetAnimation?.target == 0
+                                if isAppearing || !isInVisibleAnimation {
+                                    state.font = font
+                                    state.glyph = glyph
+                                    state.descent = descent
+                                    state.boundingRect = boundingRect
+                                    state.textBounds = textBounds
+                                    if state.frame.size != rect.size {
+                                        // A character may have different sizes in different contexts. When reusing a character layer for frame animation,
+                                        // to ensure the character is drawn correctly at the new size, it is necessary to immediately adjust the layer's
+                                        // size to the final dimensions and redraw it at that size.
+                                        state.presentationFrame.size = rect.size
+                                    }
+                                    state.frame = rect
+                                    state.isDirty = true
+                                    state.invalid = false
+                                    state.layer.setNeedsDisplay()
+                                    continue nextGlyph
+                                }
+                            }
+                        }
+
+                        let state = makeLayerState()
+                        state.font = font
+                        state.glyph = glyph
+                        state.descent = descent
+                        state.boundingRect = boundingRect
+                        state.textBounds = textBounds
+                        state.key = stateKey
+                        let layer = state.layer
+                        addSublayer(layer)
+                        state.presentationFrame = rect
                         state.frame = rect
-                        state.isDirty = true
-                        state.invalid = false
-                        state.layer.setNeedsDisplay()
-                        continue nextCharacter
+                        stateNeedsAppearAnimation.append(state)
+                        layerStates[layer] = state
+
+                        let container = stateContainer(for: stateKey)
+                        container.append(state)
+
+                        layer.setNeedsDisplay()
                     }
                 }
             }
-
-            let state = makeLayerState()
-            state.range = range
-            state.character = character
-            let layer = state.layer
-            addSublayer(layer)
-            state.presentationFrame = rect
-            state.textBounds = boundingRect
-            state.frame = rect
-            stateNeedsAppearAnimation.append(state)
-            layerStates[layer] = state
-
-            let container = stateContainer(for: character)
-            container.append(state)
-
-            layer.setNeedsDisplay()
         }
 
         let invalidStates = layerStates.filter {
@@ -409,7 +539,7 @@ extension GlyphixTextLayer {
 
         invalidStates
             .sorted {
-                $0.1.range.location < $1.1.range.location
+                $0.1.frame.minX < $1.1.frame.minX
             }
             .enumerated()
             .forEach {
@@ -426,12 +556,15 @@ extension GlyphixTextLayer {
     }
 
     func animateTransition(with context: DisplayLinkCallbackContext) {
-        #if DEBUG && canImport(UIKit)
+        #if DEBUG && os(iOS)
         let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
         #else
         let animationFactor: TimeInterval = 1
         #endif
-        let duration = min(context.duration, context.targetTimestamp - context.timestamp) * animationFactor
+        let duration = max(0, min(context.duration, context.targetTimestamp - context.timestamp) * animationFactor)
+        if duration == 0 {
+            return
+        }
 
         var needsRedraw = false
         var colorAnimation = colorAnimation
@@ -463,15 +596,15 @@ extension GlyphixTextLayer {
             let layer = state.layer
             layer.removeFromSuperlayer()
             layerStates.removeValue(forKey: layer)
-            guard let character = state.character else {
+            guard let key = state.key else {
                 continue
             }
-            guard let container = characterStates[character] else {
+            guard let container = glyphStates[key] else {
                 continue
             }
             container.removeAll { $0 === state }
             if container.isEmpty {
-                characterStates.removeValue(forKey: character)
+                glyphStates.removeValue(forKey: key)
             }
         }
     }
@@ -569,56 +702,39 @@ extension GlyphixTextLayer {
 
 extension GlyphixTextLayer: CALayerDelegate {
 
-    public func action(for _: CALayer, forKey _: String) -> (any CAAction)? {
+    public func action(for layer: CALayer, forKey key: String) -> (any CAAction)? {
         NSNull()
     }
 
     public func draw(_ layer: CALayer, in ctx: CGContext) {
         guard let state = layerStates[layer],
-            let textBounds = state.textBounds,
-            state.isDirty
+              let font = state.font,
+              var glyph = state.glyph
         else { return }
-
-        let range = state.range
-        if range.length == 0 { return }
-
-        // state mismatch, delay next drawing
-        guard let storage = textLayoutManager.textStorage,
-            storage.string.count >= range.upperBound
-        else { return }
-
-        let contentsScale: CGFloat =
-            (delegate as? PlatformView)?
-            .animationScalingFactor ?? 2
+        
+        let contentsScale: CGFloat = (delegate as? PlatformView)?.animationScalingFactor ?? 2
 
         if layer.contentsScale != contentsScale {
             layer.contentsScale = contentsScale
-            DispatchQueue.main.async { layer.setNeedsDisplay() }
+            DispatchQueue.main.async {
+                layer.setNeedsDisplay()
+            }
             return
         }
-        defer { state.isDirty = false }
 
         ctx.saveGState()
         ctx.setAllowsAntialiasing(true)
         ctx.setShouldAntialias(true)
         ctx.setAllowsFontSmoothing(true)
         ctx.setShouldSmoothFonts(true)
-        ctx.draw {
-            let anchor: CGFloat =
-                switch alignment {
-                case .left:
-                    0
-                case .center:
-                    textBounds.midX
-                case .right:
-                    textBounds.maxX
-                }
-            let origin = state.frame.offsetBy(dx: anchor, dy: 0).origin
-            textLayoutManager.drawGlyphs(
-                forGlyphRange: range,
-                at: .init(x: -origin.x, y: -origin.y)
-            )
-        }
+        ctx.translateBy(x: 0, y: layer.bounds.height)
+        ctx.scaleBy(x: 1, y: -1)
+        
+        let boundingRect = state.boundingRect
+        let descent = state.descent
+        var position: CGPoint = .init(x: -min(0, boundingRect.minX), y: descent - min(0, boundingRect.minY + descent))
+        CTFontDrawGlyphs(font, &glyph, &position, 1, ctx)
+        
         ctx.restoreGState()
     }
 }

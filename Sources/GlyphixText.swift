@@ -16,11 +16,11 @@ public struct GlyphixText {
         self.font = font
     }
 
-    @MainActor public func createView() -> NumericTransitionLabel {
-        NumericTransitionLabel(font: font)
+    @MainActor public func createView() -> GlyphixTextLabel {
+        .init()
     }
 
-    @MainActor public func updatePropertys(forView label: NumericTransitionLabel) {
+    @MainActor public func updatePropertys(forView label: GlyphixTextLabel) {
         label.text = text
         label.textColor = textColor
     }
@@ -31,16 +31,16 @@ import UIKit
 
 extension GlyphixText: UIViewRepresentable {
 
-    public func makeUIView(context _: Context) -> NumericTransitionLabel {
+    public func makeUIView(context: Context) -> GlyphixTextLabel {
         createView()
     }
 
-    public func updateUIView(_ uiView: NumericTransitionLabel, context _: Context) {
+    public func updateUIView(_ uiView: GlyphixTextLabel, context _: Context) {
         updatePropertys(forView: uiView)
     }
 
     @available(iOS 16.0, *)
-    public func sizeThatFits(_ proposal: ProposedViewSize, uiView: NumericTransitionLabel, context: Context) -> CGSize? {
+    public func sizeThatFits(_ proposal: ProposedViewSize, uiView: GlyphixTextLabel, context: Context) -> CGSize? {
         uiView.intrinsicContentSize
     }
 }
@@ -49,16 +49,16 @@ import AppKit
 
 extension GlyphixText: NSViewRepresentable {
 
-    public func makeNSView(context _: Context) -> NumericTransitionLabel {
+    public func makeNSView(context: Context) -> GlyphixTextLabel {
         createView()
     }
 
-    public func updateNSView(_ nsView: NumericTransitionLabel, context _: Context) {
+    public func updateNSView(_ nsView: GlyphixTextLabel, context: Context) {
         updatePropertys(forView: nsView)
     }
 
     @available(macOS 13.0, *)
-    public func sizeThatFits(_ proposal: ProposedViewSize, nsView: NumericTransitionLabel, context: Context) -> CGSize? {
+    public func sizeThatFits(_ proposal: ProposedViewSize, nsView: GlyphixTextLabel, context: Context) -> CGSize? {
         nsView.intrinsicContentSize
     }
 }
