@@ -20,25 +20,19 @@ open class GlyphixTextLayer: CALayer {
             if text == attributedText?.string {
                 return
             }
-            attributedText = NSAttributedString(
-                string: text ?? .init(),
-                attributes: [.font: font]
-            )
+            updateAttributedText()
         }
     }
-    private var attributedText: NSAttributedString? {
+    private var attributedText: NSAttributedString?
+    
+    public var font: PlatformFont? {
         didSet {
-            if let attributedText {
-                ctFramesetter = CTFramesetterCreateWithAttributedString(attributedText)
-                textStorage.setAttributedString(attributedText)
-            } else {
-                ctFramesetter = nil
+            if font == oldValue {
+                return
             }
-            updateTextLayout()
+            updateAttributedText()
         }
     }
-
-    public var font: PlatformFont?
     private let defaultFont: PlatformFont = .systemFont(ofSize: PlatformFont.labelFontSize)
 
     private var effectiveFont: PlatformFont {
@@ -70,7 +64,12 @@ open class GlyphixTextLayer: CALayer {
     }
 
     public var alignment: TextAlignment = .center {
-        didSet { updateTextLayout() }
+        didSet {
+            if oldValue == alignment {
+                return
+            }
+            updateTextLayout()
+        }
     }
 
     /// The maximum number of lines for rendering text.
@@ -82,6 +81,9 @@ open class GlyphixTextLayer: CALayer {
             updateTextLayout()
         }
     }
+    
+    /// A Boolean value that specifies whether to enable font smoothing.
+    public var isSmoothRenderingEnabled: Bool = false
 
     /// A Boolean value that indicates whether views should disable animations.
     public var disablesAnimations: Bool = false
@@ -94,25 +96,10 @@ open class GlyphixTextLayer: CALayer {
     private var ctFrame: CTFrame?
     private var ctFramesetter: CTFramesetter?
     private var lines: [CTLine] = []
-    private lazy var textContainer: NSTextContainer = .init(
-        size: .init(
-            width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude
-        )
-    )
-    private lazy var textStorage: NSTextStorage = .init()
-    private lazy var textLayoutManager: NSLayoutManager = {
-        let manager = NSLayoutManager()
-        manager.addTextContainer(textContainer)
-        textContainer.lineFragmentPadding = 0
-        textContainer.maximumNumberOfLines = 1
-        textContainer.lineBreakMode = .byTruncatingTail
-        textStorage.addLayoutManager(manager)
-        return manager
-    }()
-
+    
     private var layerStates: [CALayer: LayerState] = [:]
     private var glyphStates: [String: ArrayContainer<LayerState>] = [:]
+    
     private let smoothSpring: Spring = .smooth
     private let snappySpring: Spring = .init(duration: 0.3)
     private let phoneSpring: Spring = .smooth(duration: 0.42)
@@ -167,6 +154,21 @@ open class GlyphixTextLayer: CALayer {
 
     private func makeAttributedString(_ text: String) -> NSAttributedString {
         .init(string: text, attributes: [.font: effectiveFont])
+    }
+    
+    private func updateAttributedText() {
+        if let text {
+            let attributedText = NSAttributedString(
+                string: text ?? .init(),
+                attributes: [.font: effectiveFont]
+            )
+            ctFramesetter = CTFramesetterCreateWithAttributedString(attributedText)
+            self.attributedText = attributedText
+        } else {
+            attributedText = nil
+            ctFramesetter = nil
+        }
+        updateTextLayout()
     }
 }
 
@@ -725,8 +727,10 @@ extension GlyphixTextLayer: CALayerDelegate {
         ctx.saveGState()
         ctx.setAllowsAntialiasing(true)
         ctx.setShouldAntialias(true)
-        ctx.setAllowsFontSmoothing(true)
-        ctx.setShouldSmoothFonts(true)
+        if isSmoothRenderingEnabled {
+            ctx.setAllowsFontSmoothing(true)
+            ctx.setShouldSmoothFonts(true)
+        }
         ctx.translateBy(x: 0, y: layer.bounds.height)
         ctx.scaleBy(x: 1, y: -1)
         

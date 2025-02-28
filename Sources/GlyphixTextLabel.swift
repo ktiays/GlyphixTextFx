@@ -70,6 +70,12 @@ open class GlyphixTextLabel: PlatformView {
         set { textLayer.preferredMaxLayoutWidth = newValue }
         get { textLayer.preferredMaxLayoutWidth }
     }
+    
+    /// A Boolean value that specifies whether to enable font smoothing.
+    public var isSmoothRenderingEnabled: Bool {
+        set { textLayer.isSmoothRenderingEnabled = newValue }
+        get { textLayer.isSmoothRenderingEnabled }
+    }
 
 //    override public var intrinsicContentSize: CGSize {
 //        textLayer.textBounds.size
