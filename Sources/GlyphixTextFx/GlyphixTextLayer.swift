@@ -35,13 +35,13 @@ open class GlyphixTextLayer: CALayer {
             updateAttributedText()
         }
     }
-    private let defaultFont: PlatformFont = .systemFont(ofSize: PlatformFont.labelFontSize)
+    private let defaultFont: PlatformFont = .glyphixDefaultFont
 
     private var effectiveFont: PlatformFont {
         font ?? defaultFont
     }
 
-    public var textColor: PlatformColor = .numericLabelColor {
+    public var textColor: PlatformColor = .glyphixDefaultColor {
         didSet {
             colorAnimation.target = textColor.resolvedRgbColor(with: effectiveAppearance)
         }

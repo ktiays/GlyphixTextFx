@@ -12,7 +12,9 @@ public typealias PlatformView = UIView
 typealias Appearance = UITraitCollection
 
 extension PlatformColor {
-    public static var numericLabelColor: PlatformColor = .label
+    public static var glyphixDefaultColor: PlatformColor {
+        .label
+    }
 }
 
 extension Appearance {
@@ -47,7 +49,9 @@ public typealias PlatformView = NSView
 typealias Appearance = NSAppearance
 
 extension PlatformColor {
-    public static var numericLabelColor: PlatformColor = .labelColor
+    public static var glyphixDefaultColor: PlatformColor {
+        .labelColor
+    }
 }
 
 extension Appearance {
@@ -71,10 +75,27 @@ extension PlatformColor {
 }
 #endif
 
+extension PlatformFont {
+    public static var glyphixDefaultFont: PlatformFont {
+        .systemFont(ofSize: PlatformFont.labelFontSize)
+    }
+}
+
 extension CFRange {
     static var zero: Self {
         .init(location: 0, length: 0)
     }
+}
+
+extension CGSize {
+    
+    static var greatestFiniteMagnitude: Self {
+        .init(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    }
+}
+
+func ceil(_ size: CGSize) -> CGSize {
+    .init(width: ceil(size.width), height: ceil(size.height))
 }
 
 #if DEBUG && os(iOS)

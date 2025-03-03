@@ -108,7 +108,7 @@ open class GlyphixTextLabel: PlatformView {
         super.init(frame: frame)
 
         #if os(iOS)
-        configureLayer()
+        configureAutoLayoutMethods()
         #elseif os(macOS)
         wantsLayer = true
         #endif
@@ -118,12 +118,26 @@ open class GlyphixTextLabel: PlatformView {
         super.init(coder: coder)
 
         #if os(iOS)
-        configureLayer()
+        configureAutoLayoutMethods()
         #elseif os(macOS)
         wantsLayer = true
         #endif
     }
-
+    
+    override public var intrinsicContentSize: CGSize {
+        let layoutWidth = min(_preferredMaxLayoutWidth, preferredMaxLayoutWidth == 0 ? .greatestFiniteMagnitude : preferredMaxLayoutWidth)
+        let frame = frame(
+            forAlignmentRect: .init(
+                x: 0,
+                y: 0,
+                width: layoutWidth == 0 ? CGFloat.greatestFiniteMagnitude : layoutWidth,
+                height: .greatestFiniteMagnitude
+            )
+        )
+        let s = ceil(textLayer.intrinsicSize(within: frame.size))
+        return s
+    }
+    
     private func _invalidateIntrinsicContentSize() {
         _preferredMaxLayoutWidth = .greatestFiniteMagnitude
         invalidateIntrinsicContentSize()
@@ -145,22 +159,12 @@ open class GlyphixTextLabel: PlatformView {
             textLayer.effectiveAppearanceDidChange(newSuperview.traitCollection)
         }
     }
-
-    override public var intrinsicContentSize: CGSize {
-        let layoutWidth = min(_preferredMaxLayoutWidth, preferredMaxLayoutWidth == 0 ? .greatestFiniteMagnitude : preferredMaxLayoutWidth)
-        let frame = frame(
-            forAlignmentRect: .init(
-                x: 0,
-                y: 0,
-                width: layoutWidth == 0 ? CGFloat.greatestFiniteMagnitude : layoutWidth,
-                height: .greatestFiniteMagnitude
-            )
-        )
-        let intrinsicSize = textLayer.intrinsicSize(within: frame.size)
-        return .init(width: ceil(intrinsicSize.width), height: ceil(intrinsicSize.height))
+    
+    override public func sizeThatFits(_ size: CGSize) -> CGSize {
+        ceil(textLayer.intrinsicSize(within: size))
     }
 
-    private func configureLayer() {
+    private func configureAutoLayoutMethods() {
         with("_prepareForFirstIntrinsicContentSizeCalculation") { sel in
             self.gtf_addInstanceMethod(sel) { this in
                 guard let textLabel = this as? GlyphixTextLabel else {
@@ -203,7 +207,6 @@ open class GlyphixTextLabel: PlatformView {
     override public var isFlipped: Bool { true }
 
     private var finishedFirstConstraintsPass: Bool = false
-    private var layoutEngineWidth: CGFloat?
 
     override public func makeBackingLayer() -> CALayer {
         GlyphixTextLayer()
@@ -249,6 +252,10 @@ open class GlyphixTextLabel: PlatformView {
         _preferredMaxLayoutWidth = frame.width
         invalidateIntrinsicContentSize()
         finishedFirstConstraintsPass = false
+    }
+    
+    public func sizeThatFits(_ size: CGSize) -> CGSize {
+        ceil(textLayer.intrinsicSize(within: size))
     }
     #endif
 }
