@@ -6,6 +6,8 @@
 import CoreText
 import MSDisplayLink
 import Respring
+import GTFHook
+import With
 
 #if os(iOS)
 import UIKit
@@ -88,9 +90,6 @@ open class GlyphixTextLayer: CALayer {
     /// A Boolean value that indicates whether views should disable animations.
     public var disablesAnimations: Bool = false
 
-    /// The preferred maximum width, in points, for a multiline label.
-    public var preferredMaxLayoutWidth: CGFloat = .greatestFiniteMagnitude
-
     private var containerBounds: CGRect = .zero
 
     private var ctFrame: CTFrame?
@@ -110,20 +109,20 @@ open class GlyphixTextLayer: CALayer {
 
     override init() {
         super.init()
-        commonInit()
+        configureDisplayLink()
     }
 
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
-        commonInit()
+        configureDisplayLink()
     }
 
     public override init(layer: Any) {
         super.init(layer: layer)
-        commonInit()
+        configureDisplayLink()
     }
-
-    private func commonInit() {
+    
+    private func configureDisplayLink() {
         displayLink.delegatingObject(self)
     }
 
@@ -150,6 +149,14 @@ open class GlyphixTextLayer: CALayer {
         effectiveAppearance = appearance
         let color = textColor
         textColor = color
+    }
+    
+    public func intrinsicSize(within size: CGSize) -> CGSize {
+        guard let ctFramesetter else {
+            return .zero
+        }
+        
+        return CTFramesetterSuggestFrameSizeWithConstraints(ctFramesetter, .zero, nil, size, nil)
     }
 
     private func makeAttributedString(_ text: String) -> NSAttributedString {
@@ -714,7 +721,11 @@ extension GlyphixTextLayer: CALayerDelegate {
               var glyph = state.glyph
         else { return }
         
-        let contentsScale: CGFloat = (delegate as? PlatformView)?.animationScalingFactor ?? 2
+        #if os(iOS)
+        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen.scale ?? 2
+        #elseif os(macOS)
+        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen?.backingScaleFactor ?? 1
+        #endif
 
         if layer.contentsScale != contentsScale {
             layer.contentsScale = contentsScale

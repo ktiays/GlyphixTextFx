@@ -19,20 +19,6 @@ extension Appearance {
     static var initialValue = Appearance.current
 }
 
-extension PlatformView {
-    var animationScalingFactor: CGFloat {
-        window?.screen.scale ?? 2
-    }
-}
-
-extension CGContext {
-    func draw(_ callback: () -> Void) {
-        UIGraphicsPushContext(self)
-        callback()
-        UIGraphicsPopContext()
-    }
-}
-
 extension PlatformColor {
     func resolvedRgbColor(with traitCollection: UITraitCollection) -> RGBColor {
         let cgColor = resolvedColor(with: traitCollection).cgColor.converted(
@@ -66,21 +52,6 @@ extension PlatformColor {
 
 extension Appearance {
     static var initialValue = Appearance.currentDrawing()
-}
-
-extension PlatformView {
-    var animationScalingFactor: CGFloat {
-        window?.screen?.backingScaleFactor ?? 1
-    }
-}
-
-extension CGContext {
-    func draw(_ callback: () -> Void) {
-        let context = NSGraphicsContext(cgContext: self, flipped: true)
-        NSGraphicsContext.current = context
-        callback()
-        NSGraphicsContext.current = nil
-    }
 }
 
 extension PlatformColor {

@@ -19,12 +19,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ktiays/Respring", from: "1.0.0"),
-        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.4"),
+        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.8"),
+        .package(url: "https://github.com/ktiays/With", from: "1.2.0"),
     ],
     targets: [
+        .target(name: "GTFHook"),
         .target(
             name: "GlyphixTextFx",
-            dependencies: ["Respring", "MSDisplayLink"]
-        )
+            dependencies: ["Respring", "MSDisplayLink", "GTFHook", "With"]
+        ),
     ]
 )
