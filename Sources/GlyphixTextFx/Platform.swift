@@ -6,7 +6,6 @@
 #if os(iOS)
 @_exported import UIKit
 
-public typealias PlatformFont = UIFont
 public typealias PlatformColor = UIColor
 public typealias PlatformView = UIView
 typealias Appearance = UITraitCollection
@@ -42,7 +41,6 @@ extension PlatformColor {
 
 @_exported import AppKit
 
-public typealias PlatformFont = NSFont
 public typealias PlatformColor = NSColor
 public typealias PlatformView = NSView
 
@@ -74,12 +72,6 @@ extension PlatformColor {
     }
 }
 #endif
-
-extension PlatformFont {
-    public static var glyphixDefaultFont: PlatformFont {
-        .systemFont(ofSize: PlatformFont.labelFontSize)
-    }
-}
 
 extension CFRange {
     static var zero: Self {

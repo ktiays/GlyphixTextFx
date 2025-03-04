@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import GlyphixTypesetter
 
 /// A view that displays one or more lines of read-only text with built-in glyph-level animations.
 @MainActor

@@ -4,14 +4,15 @@
 //
 
 import Foundation
-import GTFHook
+import GlyphixTypesetter
+import GlyphixHook
 import With
+
+public typealias TextAlignment = GlyphixTypesetter.TextAlignment
 
 /// A view with smooth per-character animation, like `UILabel`.
 @MainActor
 open class GlyphixTextLabel: PlatformView {
-
-    public typealias TextAlignment = GlyphixTextLayer.TextAlignment
 
     /// The text that the label displays.
     ///
@@ -140,8 +141,7 @@ open class GlyphixTextLabel: PlatformView {
                 height: .greatestFiniteMagnitude
             )
         )
-        let s = ceil(textLayer.intrinsicSize(within: frame.size))
-        return s
+        return ceil(textLayer.size(fitting: frame.size))
     }
 
     private func _invalidateIntrinsicContentSize() {
@@ -167,7 +167,7 @@ open class GlyphixTextLabel: PlatformView {
     }
 
     override public func sizeThatFits(_ size: CGSize) -> CGSize {
-        ceil(textLayer.intrinsicSize(within: size))
+        ceil(textLayer.size(fitting: size))
     }
 
     private func configureAutoLayoutMethods() {
@@ -261,7 +261,7 @@ open class GlyphixTextLabel: PlatformView {
     }
 
     public func sizeThatFits(_ size: CGSize) -> CGSize {
-        ceil(textLayer.intrinsicSize(within: size))
+        ceil(textLayer.size(fitting: size))
     }
     #endif
 }

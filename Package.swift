@@ -23,10 +23,11 @@ let package = Package(
         .package(url: "https://github.com/ktiays/With", from: "1.2.0"),
     ],
     targets: [
-        .target(name: "GTFHook"),
+        .target(name: "GlyphixTypesetter", dependencies: ["With"]),
+        .target(name: "GlyphixHook"),
         .target(
             name: "GlyphixTextFx",
-            dependencies: ["Respring", "MSDisplayLink", "GTFHook", "With"]
+            dependencies: ["Respring", "MSDisplayLink", "With", "GlyphixTypesetter", "GlyphixHook"]
         ),
     ]
 )
