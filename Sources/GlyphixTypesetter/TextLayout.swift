@@ -4,12 +4,13 @@
 //
 
 import CoreText
+import With
+
 #if os(iOS)
 import UIKit
 #else
 import AppKit
 #endif
-import With
 
 /// Constants that specify text alignment.
 public enum TextAlignment {
@@ -22,61 +23,66 @@ public enum TextAlignment {
 }
 
 public class TextLayout {
-    
+
     /// A type for generating the text layout.
     public struct Builder {
-        
+
         /// The text.
         public var text: String
-        
+
         /// The font for the text.
         public var font: PlatformFont
-        
+
         /// The size of the text container’s bounding rectangle.
         public var containerSize: CGSize
-        
+
         /// The technique for aligning the text.
         public var alignment: TextAlignment = .left
-        
+
         /// The technique for wrapping and truncating the text.
         public var lineBreakMode: NSLineBreakMode = .byTruncatingTail
-        
+
         /// The maximum number of lines for the text.
         ///
         /// A value of 0 indicates that the number of lines is limitless.
         public var numberOfLines: Int = 1
-        
+
         public init(text: String, font: CTFont, containerSize: CGSize) {
             self.text = text
             self.font = font
             self.containerSize = containerSize
         }
     }
-    
+
     @usableFromInline
     var framesetter: CTFramesetter
-    
+
     /// The placed glyphs.
     public private(set) var placedGlyphs: [PlacedGlyph]
-    
+
     /// The size of the bounding box that contains all the glyphs.
     public private(set) var size: CGSize
-    
+
     fileprivate init(framesetter: CTFramesetter, placedGlyphs: [PlacedGlyph], size: CGSize) {
         self.framesetter = framesetter
         self.placedGlyphs = placedGlyphs
         self.size = size
     }
-    
+
     @inlinable
     public func size(fitting constrainedSize: CGSize) -> CGSize {
         return CTFramesetterSuggestFrameSizeWithConstraints(
-            framesetter, .zero, nil, constrainedSize, nil)
+            framesetter,
+            .zero,
+            nil,
+            constrainedSize,
+            nil
+        )
     }
 }
 
 extension TextLayout.Builder {
-    
+
     private var needsLastLineTruncation: Bool {
         switch lineBreakMode {
         case .byTruncatingTail, .byTruncatingHead, .byTruncatingMiddle, .byClipping:
@@ -85,22 +91,22 @@ extension TextLayout.Builder {
             false
         }
     }
-    
+
     /// Creates an immutable text layout.
     public func build() -> TextLayout {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineBreakMode = needsLastLineTruncation ? .byWordWrapping : lineBreakMode
         let attributedText = NSAttributedString(
-            string: text ?? .init(),
+            string: text,
             attributes: [
                 .font: font,
                 .paragraphStyle: paragraphStyle,
             ]
         )
-        
+
         let framesetter = CTFramesetterCreateWithAttributedString(attributedText)
         let containerPath = CGPath(rect: .init(origin: .zero, size: containerSize), transform: nil)
-        
+
         let ctFrame = CTFramesetterCreateFrame(framesetter, .zero, containerPath, nil)
         var lines = CTFrameGetLines(ctFrame) as! [CTLine]
         var isLastLineTruncated: Bool = false
@@ -116,14 +122,14 @@ extension TextLayout.Builder {
         if needsLastLineTruncation && isLastLineTruncated {
             performLineTruncation(lines: &lines, attributedText: attributedText)
         }
-        
+
         struct LineTraits {
-            
+
             var ascent: CGFloat
             var descent: CGFloat
             var bounds: CGRect
         }
-        
+
         var lineTraits: [LineTraits] = []
         var textBounds: CGRect = .zero
         for line in lines {
@@ -133,12 +139,15 @@ extension TextLayout.Builder {
             let height = ascent + descent
             textBounds.size.width = max(textBounds.width, width)
             textBounds.size.height += height
-            lineTraits.append(.init(
-                ascent: ascent,
-                descent: descent,
-                bounds: .init(x: 0, y: textBounds.height - height, width: width, height: height)))
+            lineTraits.append(
+                .init(
+                    ascent: ascent,
+                    descent: descent,
+                    bounds: .init(x: 0, y: textBounds.height - height, width: width, height: height)
+                )
+            )
         }
-        
+
         // Place glyphs.
         var placedGlyphs = [PlacedGlyph]()
         for (lineIndex, line) in lines.enumerated() {
@@ -164,7 +173,7 @@ extension TextLayout.Builder {
 
                 // Optimization - batch allocate the space for the run.
                 placedGlyphs.reserveCapacity(placedGlyphs.count + glyphCount)
-                
+
                 var glyphs = [CGGlyph](repeating: 0, count: glyphCount)
                 CTRunGetGlyphs(run, .zero, &glyphs)
                 var boundingRects: [CGRect] = .init(repeating: .zero, count: glyphCount)
@@ -191,35 +200,40 @@ extension TextLayout.Builder {
                     if rect.maxX > textBounds.width {
                         rect.size.width = textBounds.width - rect.minX
                     }
-                    
-                    placedGlyphs.append(.init(
-                        font: runFont,
-                        glyph: glyph,
-                        glyphName: glyphName,
-                        boundingRect: boundingRect,
-                        layoutRect: rect,
-                        ascent: lineAscent,
-                        descent: lineDescent))
+
+                    placedGlyphs.append(
+                        .init(
+                            font: runFont,
+                            glyph: glyph,
+                            glyphName: glyphName,
+                            boundingRect: boundingRect,
+                            layoutRect: rect,
+                            ascent: lineAscent,
+                            descent: lineDescent
+                        )
+                    )
                 }
             }
         }
-        
-        return .init(framesetter: framesetter,
-                     placedGlyphs: placedGlyphs,
-                     size: textBounds.size)
+
+        return .init(
+            framesetter: framesetter,
+            placedGlyphs: placedGlyphs,
+            size: textBounds.size
+        )
     }
-    
+
     @inline(__always)
     private func makeAttributedString(_ text: String) -> NSAttributedString {
         .init(string: text, attributes: [.font: font])
     }
-    
+
     @inline(__always)
     private func performLineTruncation(lines: inout [CTLine], attributedText: NSAttributedString) {
         guard let lastLine = lines.last else {
             return
         }
-        
+
         // Truncation processing is required for the last line.
         let lineCFRange = CTLineGetStringRange(lastLine)
         var lineRange = NSRange(location: lineCFRange.location, length: lineCFRange.length)

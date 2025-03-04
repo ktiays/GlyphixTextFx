@@ -391,16 +391,16 @@ extension GlyphixTextLayer {
                         }
                         
                         let isInVisibleAnimation =
-                        state.scaleAnimation != nil
-                        || state.opacityAnimation != nil
-                        || state.blurRadiusAnimation != nil
-                        || state.offsetAnimation != nil
+                            state.scaleAnimation != nil
+                            || state.opacityAnimation != nil
+                            || state.blurRadiusAnimation != nil
+                            || state.offsetAnimation != nil
                         
                         let isAppearing =
-                        state.scaleAnimation?.target == 1
-                        || state.opacityAnimation?.target == 1
-                        || state.blurRadiusAnimation?.target == 0
-                        || state.offsetAnimation?.target == 0
+                            state.scaleAnimation?.target == 1
+                            || state.opacityAnimation?.target == 1
+                            || state.blurRadiusAnimation?.target == 0
+                            || state.offsetAnimation?.target == 0
                         if isAppearing || !isInVisibleAnimation {
                             state.font = font
                             state.glyph = glyph
