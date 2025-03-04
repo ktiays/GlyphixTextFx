@@ -13,15 +13,15 @@ import AppKit
 public typealias PlatformFont = NSFont
 #endif
 
-public extension PlatformFont {
-    
+extension PlatformFont {
+
     public static var glyphixDefaultFont: PlatformFont {
         .systemFont(ofSize: PlatformFont.labelFontSize)
     }
 }
 
 extension CFRange {
-    
+
     @usableFromInline
     static var zero: Self {
         .init(location: 0, length: 0)
