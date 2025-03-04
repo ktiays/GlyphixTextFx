@@ -5,6 +5,7 @@
 
 import SwiftUI
 
+/// A view that displays one or more lines of read-only text with built-in glyph-level animations.
 @MainActor
 public struct GlyphixText {
 
@@ -12,10 +13,12 @@ public struct GlyphixText {
     public var font: PlatformFont
     public var textColor: PlatformColor
 
+    /// Creates a text view that displays a stored string without localization.
     public init<S>(_ text: S) where S: StringProtocol {
         self.init(text: .init(text))
     }
     
+    /// Creates a text view that displays a localized string resource.
     @available(iOS 16.0, macOS 13.0, *)
     public init(_ resource: LocalizedStringResource) {
         self.init(text: .init(localized: resource))
@@ -31,12 +34,14 @@ public struct GlyphixText {
         self.textColor = textColor
     }
 
+    /// Sets the font for text in the view.
     public func font(_ font: PlatformFont) -> GlyphixText {
         var copy = self
         copy.font = font
         return copy
     }
 
+    /// Sets the color of the text displayed by this view.
     public func textColor(_ color: PlatformColor) -> GlyphixText {
         var copy = self
         copy.textColor = color

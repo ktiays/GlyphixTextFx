@@ -6,7 +6,6 @@
 import CoreText
 import MSDisplayLink
 import Respring
-import GTFHook
 import With
 
 #if os(iOS)
@@ -26,7 +25,7 @@ open class GlyphixTextLayer: CALayer {
         }
     }
     private var attributedText: NSAttributedString?
-    
+
     public var font: PlatformFont? {
         didSet {
             if font == oldValue {
@@ -74,6 +73,25 @@ open class GlyphixTextLayer: CALayer {
         }
     }
 
+    /// The technique for wrapping and truncating the layer's text.
+    public var lineBreakMode: NSLineBreakMode = .byTruncatingTail {
+        didSet {
+            if oldValue == lineBreakMode {
+                return
+            }
+            updateTextLayout()
+        }
+    }
+
+    private var needsLastLineTruncation: Bool {
+        switch lineBreakMode {
+        case .byTruncatingTail, .byTruncatingHead, .byTruncatingMiddle, .byClipping:
+            true
+        default:
+            false
+        }
+    }
+
     /// The maximum number of lines for rendering text.
     public var numberOfLines: Int = 1 {
         didSet {
@@ -83,7 +101,7 @@ open class GlyphixTextLayer: CALayer {
             updateTextLayout()
         }
     }
-    
+
     /// A Boolean value that specifies whether to enable font smoothing.
     public var isSmoothRenderingEnabled: Bool = false
 
@@ -95,10 +113,10 @@ open class GlyphixTextLayer: CALayer {
     private var ctFrame: CTFrame?
     private var ctFramesetter: CTFramesetter?
     private var lines: [CTLine] = []
-    
+
     private var layerStates: [CALayer: LayerState] = [:]
     private var glyphStates: [String: ArrayContainer<LayerState>] = [:]
-    
+
     private let smoothSpring: Spring = .smooth
     private let snappySpring: Spring = .init(duration: 0.3)
     private let phoneSpring: Spring = .smooth(duration: 0.42)
@@ -121,7 +139,7 @@ open class GlyphixTextLayer: CALayer {
         super.init(layer: layer)
         configureDisplayLink()
     }
-    
+
     private func configureDisplayLink() {
         displayLink.delegatingObject(self)
     }
@@ -129,7 +147,7 @@ open class GlyphixTextLayer: CALayer {
     override public func action(forKey key: String) -> (any CAAction)? {
         NSNull()
     }
-    
+
     override public func layoutSublayers() {
         super.layoutSublayers()
 
@@ -150,24 +168,29 @@ open class GlyphixTextLayer: CALayer {
         let color = textColor
         textColor = color
     }
-    
+
     public func intrinsicSize(within size: CGSize) -> CGSize {
         guard let ctFramesetter else {
             return .zero
         }
-        
+
         return CTFramesetterSuggestFrameSizeWithConstraints(ctFramesetter, .zero, nil, size, nil)
     }
 
     private func makeAttributedString(_ text: String) -> NSAttributedString {
         .init(string: text, attributes: [.font: effectiveFont])
     }
-    
+
     private func updateAttributedText() {
         if let text {
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.lineBreakMode = needsLastLineTruncation ? .byWordWrapping : lineBreakMode
             let attributedText = NSAttributedString(
                 string: text ?? .init(),
-                attributes: [.font: effectiveFont]
+                attributes: [
+                    .font: effectiveFont,
+                    .paragraphStyle: paragraphStyle,
+                ]
             )
             ctFramesetter = CTFramesetterCreateWithAttributedString(attributedText)
             self.attributedText = attributedText
@@ -392,21 +415,53 @@ extension GlyphixTextLayer {
                 lines.removeSubrange(numberOfLines...)
                 isLastLineTruncated = true
             }
-            if !isLastLineTruncated {
+            if needsLastLineTruncation && !isLastLineTruncated {
                 let visibleRange = CTFrameGetVisibleStringRange(ctFrame)
                 isLastLineTruncated = (visibleRange.length != attributedText?.length && !lines.isEmpty)
             }
 
-            if let attributedText, isLastLineTruncated, let lastLine = lines.last {
+            lineTruncation: do {
+                guard needsLastLineTruncation, isLastLineTruncated,
+                    let attributedText, let lastLine = lines.last
+                else {
+                    break lineTruncation
+                }
+
                 // Truncation processing is required for the last line.
                 let lineCFRange = CTLineGetStringRange(lastLine)
-                let lineRange = NSRange(location: lineCFRange.location, length: lineCFRange.length)
+                var lineRange = NSRange(location: lineCFRange.location, length: lineCFRange.length)
+                let needsAdditionalTruncation = (lineBreakMode == .byTruncatingTail)
+                if !needsAdditionalTruncation {
+                    lineRange.length = attributedText.length - lineRange.location
+                }
                 let lastLineString: NSMutableAttributedString = .init(attributedString: attributedText.attributedSubstring(from: lineRange))
                 let truncationTokenString = makeAttributedString("\u{2026}")
-                lastLineString.append(truncationTokenString)
+                if needsAdditionalTruncation {
+                    lastLineString.append(truncationTokenString)
+                }
                 let line = CTLineCreateWithAttributedString(lastLineString)
+
+                if lineBreakMode == .byClipping {
+                    lines[lines.count - 1] = line
+                    break lineTruncation
+                }
+
                 let truncationLine = CTLineCreateWithAttributedString(truncationTokenString)
-                if let truncatedLine = CTLineCreateTruncatedLine(line, containerBounds.width, .end, truncationLine) {
+                let truncationType: CTLineTruncationType =
+                    switch lineBreakMode {
+                    case .byTruncatingHead:
+                        .start
+                    case .byTruncatingMiddle:
+                        .middle
+                    default:
+                        .end
+                    }
+                if let truncatedLine = CTLineCreateTruncatedLine(
+                    line,
+                    containerBounds.width,
+                    truncationType,
+                    truncationLine
+                ) {
                     lines[lines.count - 1] = truncatedLine
                 }
             }
@@ -421,7 +476,7 @@ extension GlyphixTextLayer {
             for (index, line) in lines.enumerated() {
                 var ascent: CGFloat = 0
                 var descent: CGFloat = 0
-                let width = CTLineGetTypographicBounds(line, &ascent, &descent, nil)
+                let width = min(containerBounds.width, CTLineGetTypographicBounds(line, &ascent, &descent, nil))
                 let height = ascent + descent
                 textBounds.size.width = max(textBounds.width, width)
                 textBounds.size.height += height
@@ -436,6 +491,9 @@ extension GlyphixTextLayer {
                 let runs = CTLineGetGlyphRuns(line) as! [CTRun]
                 for run in runs {
                     let attributes = CTRunGetAttributes(run) as! [NSAttributedString.Key: Any]
+                    // When the specified font is unable to render the text correctly, `CoreText` will automatically
+                    // match an appropriate system font based on the characters for display.
+                    // As a result, the font used to render this text may not be unique.
                     let platformFont = attributes[.font] as? PlatformFont
                     let font = (platformFont ?? effectiveFont) as CTFont
                     let cgFont = CTFontCopyGraphicsFont(font, nil)
@@ -446,7 +504,7 @@ extension GlyphixTextLayer {
                     // the next character for precise text layout and width calculation.
                     var advances: [CGSize] = .init(repeating: .zero, count: glyphCount)
                     CTRunGetAdvances(run, .zero, &advances)
-                    
+
                     var glyphs = [CGGlyph](repeating: 0, count: glyphCount)
                     CTRunGetGlyphs(run, .zero, &glyphs)
                     var boundingRects: [CGRect] = .init(repeating: .zero, count: glyphCount)
@@ -465,12 +523,18 @@ extension GlyphixTextLayer {
                         let xCompensation = min(0, boundingRect.minX)
                         let bottomExtends = min(0, boundingRect.minY + descent)
                         let topExtends = max(0, boundingRect.maxY + descent - lineBounds.height)
-                        let rect = CGRect(
+                        var rect = CGRect(
                             x: lineOrigin.x + position.x + xCompensation,
                             y: lineOrigin.y + position.y - topExtends,
                             width: ceil(max(advance.width, boundingRect.maxX)),
                             height: lineBounds.height - bottomExtends
                         )
+                        if rect.minX > textBounds.width {
+                            break nextGlyph
+                        }
+                        if rect.maxX > textBounds.width {
+                            rect.size.width = textBounds.width - rect.minX
+                        }
 
                         if let states = glyphStates[stateKey], !stateKey.isEmpty {
                             for state in states {
@@ -717,10 +781,10 @@ extension GlyphixTextLayer: CALayerDelegate {
 
     public func draw(_ layer: CALayer, in ctx: CGContext) {
         guard let state = layerStates[layer],
-              let font = state.font,
-              var glyph = state.glyph
+            let font = state.font,
+            var glyph = state.glyph
         else { return }
-        
+
         #if os(iOS)
         let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen.scale ?? 2
         #elseif os(macOS)
@@ -744,12 +808,12 @@ extension GlyphixTextLayer: CALayerDelegate {
         }
         ctx.translateBy(x: 0, y: layer.bounds.height)
         ctx.scaleBy(x: 1, y: -1)
-        
+
         let boundingRect = state.boundingRect
         let descent = state.descent
         var position: CGPoint = .init(x: -min(0, boundingRect.minX), y: descent - min(0, boundingRect.minY + descent))
         CTFontDrawGlyphs(font, &glyph, &position, 1, ctx)
-        
+
         ctx.restoreGState()
     }
 }

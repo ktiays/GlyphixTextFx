@@ -57,6 +57,12 @@ open class GlyphixTextLabel: PlatformView {
         get { textLayer.alignment }
     }
 
+    /// The technique for wrapping and truncating the label's text.
+    public var lineBreakMode: NSLineBreakMode {
+        set { textLayer.lineBreakMode = newValue }
+        get { textLayer.lineBreakMode }
+    }
+
     /// The maximum number of lines for rendering text.
     ///
     /// This property controls the maximum number of lines to use in order to fit the label's text into
@@ -123,7 +129,7 @@ open class GlyphixTextLabel: PlatformView {
         wantsLayer = true
         #endif
     }
-    
+
     override public var intrinsicContentSize: CGSize {
         let layoutWidth = min(_preferredMaxLayoutWidth, preferredMaxLayoutWidth == 0 ? .greatestFiniteMagnitude : preferredMaxLayoutWidth)
         let frame = frame(
@@ -137,7 +143,7 @@ open class GlyphixTextLabel: PlatformView {
         let s = ceil(textLayer.intrinsicSize(within: frame.size))
         return s
     }
-    
+
     private func _invalidateIntrinsicContentSize() {
         _preferredMaxLayoutWidth = .greatestFiniteMagnitude
         invalidateIntrinsicContentSize()
@@ -159,7 +165,7 @@ open class GlyphixTextLabel: PlatformView {
             textLayer.effectiveAppearanceDidChange(newSuperview.traitCollection)
         }
     }
-    
+
     override public func sizeThatFits(_ size: CGSize) -> CGSize {
         ceil(textLayer.intrinsicSize(within: size))
     }
@@ -253,7 +259,7 @@ open class GlyphixTextLabel: PlatformView {
         invalidateIntrinsicContentSize()
         finishedFirstConstraintsPass = false
     }
-    
+
     public func sizeThatFits(_ size: CGSize) -> CGSize {
         ceil(textLayer.intrinsicSize(within: size))
     }
