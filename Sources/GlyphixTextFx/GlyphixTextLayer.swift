@@ -3,8 +3,8 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
+import Choreographer
 import GlyphixTypesetter
-import MSDisplayLink
 import Respring
 
 #if os(iOS)
@@ -109,25 +109,27 @@ open class GlyphixTextLayer: CALayer {
     private let bouncySpring: Spring = .init(response: 0.42, dampingRatio: 0.8)
     private var effectiveAppearance: Appearance = .initialValue
 
-    private let displayLink = DisplayLink()
-
-    override init() {
-        super.init()
-        configureDisplayLink()
+    /// The display sync observer that drives animations of this layer.
+    ///
+    /// Clients must invalidate the observer when tearing down, and the
+    /// layer will only set `frameUpdateHandler` of the observer.
+    @MainActor
+    var displaySyncObserver: VSyncObserver? {
+        didSet {
+            configureDisplaySyncObserver()
+        }
     }
+    private var lastFrameTimestamp: CFTimeInterval?
 
-    public required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        configureDisplayLink()
-    }
-
-    public override init(layer: Any) {
-        super.init(layer: layer)
-        configureDisplayLink()
-    }
-
-    private func configureDisplayLink() {
-        displayLink.delegatingObject(self)
+    @MainActor
+    private func configureDisplaySyncObserver() {
+        guard let displaySyncObserver else {
+            return
+        }
+        lastFrameTimestamp = nil
+        displaySyncObserver.frameUpdateHandler = { [unowned self] context in
+            animateTransition(with: context)
+        }
     }
 
     override public func action(forKey key: String) -> (any CAAction)? {
@@ -462,13 +464,19 @@ extension GlyphixTextLayer {
         layer.setValue(colorAnimation.value.cgColor, forKeyPath: ColorAddFilter.inputColorKeyPath)
     }
 
-    func animateTransition(with context: DisplayLinkCallbackContext) {
+    func animateTransition(with context: VSyncEventContext) {
         #if DEBUG && os(iOS)
         let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
         #else
         let animationFactor: TimeInterval = 1
         #endif
-        let duration = max(0, min(context.duration, context.targetTimestamp - context.timestamp) * animationFactor)
+        defer { lastFrameTimestamp = context.targetTimestamp }
+        let duration =
+            if let lastFrameTimestamp {
+                Double(context.targetTimestamp - lastFrameTimestamp) * animationFactor
+            } else {
+                0.0
+            }
         if duration == 0 {
             return
         }
@@ -649,18 +657,5 @@ extension GlyphixTextLayer: CALayerDelegate {
         CTFontDrawGlyphs(font, &glyph, &position, 1, ctx)
 
         ctx.restoreGState()
-    }
-}
-
-extension GlyphixTextLayer: DisplayLinkDelegate {
-
-    public func synchronization(context: DisplayLinkCallbackContext) {
-        if Thread.isMainThread {
-            animateTransition(with: context)
-        } else {
-            DispatchQueue.main.async {
-                self.animateTransition(with: context)
-            }
-        }
     }
 }

@@ -4,8 +4,8 @@
 //
 
 import Foundation
-import GlyphixTypesetter
 import GlyphixHook
+import GlyphixTypesetter
 import With
 
 public typealias TextAlignment = GlyphixTypesetter.TextAlignment
@@ -168,6 +168,16 @@ open class GlyphixTextLabel: PlatformView {
         }
     }
 
+    open override func willMove(toWindow newWindow: UIWindow?) {
+        super.willMove(toWindow: newWindow)
+        if newWindow != nil {
+            textLayer.displaySyncObserver = try? .init()
+        } else {
+            try? textLayer.displaySyncObserver?.invalidate()
+            textLayer.displaySyncObserver = nil
+        }
+    }
+
     override open func sizeThatFits(_ size: CGSize) -> CGSize {
         ceil(textLayer.size(fitting: size))
     }
@@ -231,6 +241,16 @@ open class GlyphixTextLabel: PlatformView {
 
         if let newSuperview {
             textLayer.effectiveAppearanceDidChange(newSuperview.effectiveAppearance)
+        }
+    }
+
+    override open func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if let newWindow, let screen = newWindow.screen {
+            textLayer.displaySyncObserver = try? .init(screen: screen)
+        } else {
+            try? textLayer.displaySyncObserver?.invalidate()
+            textLayer.displaySyncObserver = nil
         }
     }
 
