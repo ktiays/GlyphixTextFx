@@ -53,7 +53,7 @@ open class GlyphixTextLayer: CALayer {
 
     public var countsDown: Bool = false
 
-    public var alignment: TextAlignment = .center {
+    public var alignment: TextAlignment = .left {
         didSet {
             if oldValue == alignment {
                 return
@@ -98,8 +98,8 @@ open class GlyphixTextLayer: CALayer {
     public var disablesAnimations: Bool = false
 
     private var containerBounds: CGRect = .zero
-    
-    private var textLayout: TextLayout?
+
+    private var textLayout: TextLayout?
     private var layerStates: [CALayer: LayerState] = [:]
     private var glyphStates: [String: ArrayContainer<LayerState>] = [:]
 
@@ -213,7 +213,6 @@ extension GlyphixTextLayer {
 
         var delay: TimeInterval = 0
         var invalid: Bool = false
-        var isDirty: Bool = true
 
         var isAnimating: Bool {
             frameAnimation != nil
@@ -237,7 +236,6 @@ extension GlyphixTextLayer {
         var glyph: CGGlyph?
         var boundingRect: CGRect = .zero
         var descent: CGFloat = 0
-        var textBounds: CGRect = .zero
 
         weak var delegate: (any Delegate)?
 
@@ -306,24 +304,12 @@ extension GlyphixTextLayer: GlyphixTextLayer.LayerState.Delegate {
 
     func updateFrame(with state: LayerState) {
         let layer = state.layer
-        let frame = state.presentationFrame
+        let targetFrame = state.presentationFrame
         let transform = layer.transform
         layer.transform = CATransform3DIdentity
-        let textBounds = state.textBounds
-
-        let offsetX: CGFloat =
-            switch alignment {
-            case .left:
-                0
-            case .center:
-                (bounds.width - textBounds.width) / 2
-            case .right:
-                bounds.width - textBounds.width
-            }
-        let targetFrame = frame.offsetBy(dx: max(0, offsetX), dy: (bounds.height - textBounds.height) / 2)
 
         let currentSize = layer.bounds.size
-        if currentSize != frame.size {
+        if currentSize != targetFrame.size {
             layer.frame = targetFrame
         } else {
             layer.position = .init(x: targetFrame.midX, y: targetFrame.midY)
@@ -366,10 +352,16 @@ extension GlyphixTextLayer {
 
     private func updateTextLayout() {
         layerStates.forEach { $1.invalid = true }
-        
+
         if let text {
             let textLayoutBuilder = TextLayout.Builder(
-                text: text, font: effectiveFont, containerSize: containerBounds.size)
+                text: text,
+                font: effectiveFont,
+                containerBounds: containerBounds,
+                alignment: alignment,
+                lineBreakMode: lineBreakMode,
+                numberOfLines: numberOfLines
+            )
             self.textLayout = textLayoutBuilder.build()
         } else {
             self.textLayout = nil
@@ -377,7 +369,6 @@ extension GlyphixTextLayer {
 
         var stateNeedsAppearAnimation: [LayerState] = []
         if let textLayout {
-            let textBounds = CGRect(origin: .zero, size: textLayout.size)
             nextGlyph: for placedGlyph in textLayout.placedGlyphs {
                 let stateKey = placedGlyph.glyphName ?? ""
                 let glyph = placedGlyph.glyph
@@ -389,13 +380,13 @@ extension GlyphixTextLayer {
                         if !state.invalid {
                             continue
                         }
-                        
+
                         let isInVisibleAnimation =
                             state.scaleAnimation != nil
                             || state.opacityAnimation != nil
                             || state.blurRadiusAnimation != nil
                             || state.offsetAnimation != nil
-                        
+
                         let isAppearing =
                             state.scaleAnimation?.target == 1
                             || state.opacityAnimation?.target == 1
@@ -406,7 +397,6 @@ extension GlyphixTextLayer {
                             state.glyph = glyph
                             state.descent = descent
                             state.boundingRect = boundingRect
-                            state.textBounds = textBounds
                             if state.frame.size != rect.size {
                                 // A character may have different sizes in different contexts. When reusing a character layer for frame animation,
                                 // to ensure the character is drawn correctly at the new size, it is necessary to immediately adjust the layer's
@@ -414,20 +404,18 @@ extension GlyphixTextLayer {
                                 state.presentationFrame.size = rect.size
                             }
                             state.frame = rect
-                            state.isDirty = true
                             state.invalid = false
                             state.layer.setNeedsDisplay()
                             continue nextGlyph
                         }
                     }
                 }
-                
+
                 let state = makeLayerState()
                 state.font = font
                 state.glyph = glyph
                 state.descent = descent
                 state.boundingRect = boundingRect
-                state.textBounds = textBounds
                 state.key = stateKey
                 let layer = state.layer
                 addSublayer(layer)
@@ -435,10 +423,10 @@ extension GlyphixTextLayer {
                 state.frame = rect
                 stateNeedsAppearAnimation.append(state)
                 layerStates[layer] = state
-                
+
                 let container = stateContainer(for: stateKey)
                 container.append(state)
-                
+
                 layer.setNeedsDisplay()
             }
         }

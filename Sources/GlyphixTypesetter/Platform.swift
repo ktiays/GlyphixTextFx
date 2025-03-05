@@ -27,3 +27,7 @@ extension CFRange {
         .init(location: 0, length: 0)
     }
 }
+
+func + (_ lhs: CGPoint, _ rhs: CGPoint) -> CGPoint {
+    .init(x: lhs.x + rhs.x, y: lhs.y + rhs.y)
+}

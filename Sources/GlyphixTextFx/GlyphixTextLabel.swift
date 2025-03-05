@@ -52,7 +52,7 @@ open class GlyphixTextLabel: PlatformView {
 
     /// The technique for aligning the text.
     ///
-    /// The default value of this property is `center`.
+    /// The default value for this property is `left`.
     public var textAlignment: TextAlignment {
         set { textLayer.alignment = newValue }
         get { textLayer.alignment }
@@ -102,6 +102,8 @@ open class GlyphixTextLabel: PlatformView {
     }
 
     /// A Boolean value that specifies whether to enable font smoothing.
+    ///
+    /// The default value for this property is `false`.
     public var isSmoothRenderingEnabled: Bool {
         set { textLayer.isSmoothRenderingEnabled = newValue }
         get { textLayer.isSmoothRenderingEnabled }
@@ -111,7 +113,7 @@ open class GlyphixTextLabel: PlatformView {
         layer as! GlyphixTextLayer
     }
 
-    public override init(frame: CGRect) {
+    override public init(frame: CGRect) {
         super.init(frame: frame)
 
         #if os(iOS)
@@ -158,7 +160,7 @@ open class GlyphixTextLabel: PlatformView {
         textLayer.effectiveAppearanceDidChange(traitCollection)
     }
 
-    open override func willMove(toSuperview newSuperview: UIView?) {
+    override open func willMove(toSuperview newSuperview: UIView?) {
         super.willMove(toSuperview: newSuperview)
 
         if let newSuperview {
@@ -166,7 +168,7 @@ open class GlyphixTextLabel: PlatformView {
         }
     }
 
-    override public func sizeThatFits(_ size: CGSize) -> CGSize {
+    override open func sizeThatFits(_ size: CGSize) -> CGSize {
         ceil(textLayer.size(fitting: size))
     }
 
@@ -224,7 +226,7 @@ open class GlyphixTextLabel: PlatformView {
         textLayer.effectiveAppearanceDidChange(effectiveAppearance)
     }
 
-    open override func viewWillMove(toSuperview newSuperview: NSView?) {
+    override open func viewWillMove(toSuperview newSuperview: NSView?) {
         super.viewWillMove(toSuperview: newSuperview)
 
         if let newSuperview {
@@ -232,7 +234,7 @@ open class GlyphixTextLabel: PlatformView {
         }
     }
 
-    open override func updateConstraints() {
+    override open func updateConstraints() {
         defer { super.updateConstraints() }
         if !needsDoubleUpdateConstraintsPass {
             return
@@ -260,7 +262,8 @@ open class GlyphixTextLabel: PlatformView {
         finishedFirstConstraintsPass = false
     }
 
-    public func sizeThatFits(_ size: CGSize) -> CGSize {
+    /// Asks the label to calculate and return the size that best fits the specified size.
+    open func sizeThatFits(_ size: CGSize) -> CGSize {
         ceil(textLayer.size(fitting: size))
     }
     #endif

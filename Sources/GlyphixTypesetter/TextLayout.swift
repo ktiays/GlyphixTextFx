@@ -33,24 +33,39 @@ public class TextLayout {
         /// The font for the text.
         public var font: PlatformFont
 
-        /// The size of the text container’s bounding rectangle.
-        public var containerSize: CGSize
+        /// The bounding rectangle of the text container.
+        public var containerBounds: CGRect
 
         /// The technique for aligning the text.
-        public var alignment: TextAlignment = .left
+        ///
+        /// The default value for this property is `.left`.
+        public var alignment: TextAlignment
 
         /// The technique for wrapping and truncating the text.
-        public var lineBreakMode: NSLineBreakMode = .byTruncatingTail
+        ///
+        /// The default value for this property is `.byTruncatingTail`.
+        public var lineBreakMode: NSLineBreakMode
 
         /// The maximum number of lines for the text.
         ///
         /// A value of 0 indicates that the number of lines is limitless.
-        public var numberOfLines: Int = 1
+        /// The default value for this property is `1`.
+        public var numberOfLines: Int
 
-        public init(text: String, font: CTFont, containerSize: CGSize) {
+        public init(
+            text: String,
+            font: PlatformFont,
+            containerBounds: CGRect,
+            alignment: TextAlignment = .left,
+            lineBreakMode: NSLineBreakMode = .byTruncatingTail,
+            numberOfLines: Int = 1
+        ) {
             self.text = text
             self.font = font
-            self.containerSize = containerSize
+            self.containerBounds = containerBounds
+            self.alignment = alignment
+            self.lineBreakMode = lineBreakMode
+            self.numberOfLines = numberOfLines
         }
     }
 
@@ -105,7 +120,7 @@ extension TextLayout.Builder {
         )
 
         let framesetter = CTFramesetterCreateWithAttributedString(attributedText)
-        let containerPath = CGPath(rect: .init(origin: .zero, size: containerSize), transform: nil)
+        let containerPath = CGPath(rect: .init(origin: .zero, size: containerBounds.size), transform: nil)
 
         let ctFrame = CTFramesetterCreateFrame(framesetter, .zero, containerPath, nil)
         var lines = CTFrameGetLines(ctFrame) as! [CTLine]
@@ -124,7 +139,6 @@ extension TextLayout.Builder {
         }
 
         struct LineTraits {
-
             var ascent: CGFloat
             var descent: CGFloat
             var bounds: CGRect
@@ -135,7 +149,7 @@ extension TextLayout.Builder {
         for line in lines {
             var ascent: CGFloat = 0
             var descent: CGFloat = 0
-            let width = min(containerSize.width, CTLineGetTypographicBounds(line, &ascent, &descent, nil))
+            let width = min(containerBounds.width, CTLineGetTypographicBounds(line, &ascent, &descent, nil))
             let height = ascent + descent
             textBounds.size.width = max(textBounds.width, width)
             textBounds.size.height += height
@@ -154,7 +168,18 @@ extension TextLayout.Builder {
             let (lineAscent, lineDescent, lineBounds) = with(lineTraits[lineIndex]) {
                 ($0.ascent, $0.descent, $0.bounds)
             }
-            let lineOrigin = lineBounds.origin
+            let alignmentHorizontalOffset: CGFloat =
+                switch alignment {
+                case .left:
+                    0
+                case .center:
+                    (containerBounds.width - lineBounds.width) / 2
+                case .right:
+                    containerBounds.width - lineBounds.width
+                }
+            let alignmentVerticalOffset = (containerBounds.height - textBounds.height) / 2
+            let lineOrigin = lineBounds.origin + CGPoint(x: alignmentHorizontalOffset, y: alignmentVerticalOffset)
+
             let runs = CTLineGetGlyphRuns(line) as! [CTRun]
             for run in runs {
                 let attributes = CTRunGetAttributes(run) as! [NSAttributedString.Key: Any]
@@ -162,7 +187,7 @@ extension TextLayout.Builder {
                 // match an appropriate system font based on the characters for display.
                 // As a result, the font used to render this text may not be unique.
                 let runFont = (attributes[.font] as? PlatformFont ?? font) as CTFont
-                let cgFont = CTFontCopyGraphicsFont(font, nil)
+                let cgFont = CTFontCopyGraphicsFont(runFont, nil)
                 let glyphCount = CTRunGetGlyphCount(run)
                 var positions: [CGPoint] = .init(repeating: .zero, count: glyphCount)
                 CTRunGetPositions(run, .zero, &positions)
@@ -265,7 +290,7 @@ extension TextLayout.Builder {
             }
         if let truncatedLine = CTLineCreateTruncatedLine(
             line,
-            containerSize.width,
+            containerBounds.width,
             truncationType,
             truncationLine
         ) {
