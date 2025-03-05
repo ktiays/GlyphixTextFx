@@ -217,7 +217,7 @@ extension TextLayout.Builder {
                         x: lineOrigin.x + position.x + xCompensation,
                         y: lineOrigin.y + position.y - topExtends,
                         width: ceil(max(advance.width, boundingRect.maxX)),
-                        height: lineBounds.height - bottomExtends
+                        height: lineBounds.height - bottomExtends + topExtends
                     )
                     if rect.minX > textBounds.width {
                         break

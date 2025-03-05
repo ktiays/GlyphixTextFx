@@ -128,7 +128,10 @@ open class GlyphixTextLayer: CALayer {
         }
         lastFrameTimestamp = nil
         displaySyncObserver.frameUpdateHandler = { [unowned self] context in
+            CATransaction.begin()
+            CATransaction.setDisableActions(true)
             animateTransition(with: context)
+            CATransaction.commit()
         }
     }
 
@@ -377,6 +380,7 @@ extension GlyphixTextLayer {
                 let descent = placedGlyph.descent
                 let boundingRect = placedGlyph.boundingRect
                 let rect = placedGlyph.layoutRect
+                let font = placedGlyph.font
                 if let states = glyphStates[stateKey], !stateKey.isEmpty {
                     for state in states {
                         if !state.invalid {
