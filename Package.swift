@@ -19,7 +19,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/ktiays/Respring", from: "1.0.0"),
-        .package(url: "https://github.com/Lakr233/MSDisplayLink", from: "2.0.8"),
+        .package(url: "https://github.com/unixzii/Choreographer", branch: "main"),
         .package(url: "https://github.com/ktiays/With", from: "1.2.0"),
     ],
     targets: [
@@ -27,7 +27,7 @@ let package = Package(
         .target(name: "GlyphixHook"),
         .target(
             name: "GlyphixTextFx",
-            dependencies: ["Respring", "MSDisplayLink", "With", "GlyphixTypesetter", "GlyphixHook"]
+            dependencies: ["Respring", "Choreographer", "With", "GlyphixTypesetter", "GlyphixHook"]
         ),
     ]
 )
