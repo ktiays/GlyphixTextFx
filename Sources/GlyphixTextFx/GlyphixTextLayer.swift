@@ -329,6 +329,7 @@ extension GlyphixTextLayer {
         let layer = CALayer()
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
+        layer.needsDisplayOnBoundsChange = true
 
         var filters: [Any] = []
         if var colorFilter = ColorAddFilter() {
@@ -403,12 +404,6 @@ extension GlyphixTextLayer {
                             state.glyph = glyph
                             state.descent = descent
                             state.boundingRect = boundingRect
-                            if state.frame.size != rect.size {
-                                // A character may have different sizes in different contexts. When reusing a character layer for frame animation,
-                                // to ensure the character is drawn correctly at the new size, it is necessary to immediately adjust the layer's
-                                // size to the final dimensions and redraw it at that size.
-                                state.presentationFrame.size = rect.size
-                            }
                             state.frame = rect
                             state.invalid = false
                             state.layer.setNeedsDisplay()
@@ -654,6 +649,14 @@ extension GlyphixTextLayer: CALayerDelegate {
         }
         ctx.translateBy(x: 0, y: layer.bounds.height)
         ctx.scaleBy(x: 1, y: -1)
+        
+        if state.frameAnimation?.isCompleted == false {
+            // Ensure the glyph is drawn correctly in a scaled layer.
+            ctx.scaleBy(
+                x: layer.bounds.width / state.frame.width,
+                y: layer.bounds.height / state.frame.height
+            )
+        }
 
         let boundingRect = state.boundingRect
         let descent = state.descent
