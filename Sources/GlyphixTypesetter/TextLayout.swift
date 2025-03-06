@@ -219,11 +219,11 @@ extension TextLayout.Builder {
                         width: ceil(max(advance.width, boundingRect.maxX)),
                         height: lineBounds.height - bottomExtends + topExtends
                     )
-                    if rect.minX > textBounds.width {
+                    if rect.minX > containerBounds.width {
                         break
                     }
-                    if rect.maxX > textBounds.width {
-                        rect.size.width = textBounds.width - rect.minX
+                    if rect.maxX > containerBounds.width {
+                        rect.size.width = containerBounds.width - rect.minX
                     }
 
                     placedGlyphs.append(
