@@ -137,6 +137,7 @@ open class GlyphixTextLayer: CALayer {
             }
 
             for (_, state) in layerStates {
+                state.blurRadiusAnimation = nil
                 state.blurRadius = 0
             }
         }
@@ -219,8 +220,10 @@ extension GlyphixTextLayer {
     final class LayerState {
 
         protocol Delegate: AnyObject {
-            func updateFrame(with state: GlyphixTextLayer.LayerState)
-            func updateBlurRadius(_ radius: CGFloat, for layer: CALayer)
+            
+            var isBlurEffectEnabled: Bool { get }
+            
+            func updateFrame(with state: LayerState)
         }
 
         var frame: CGRect = .zero {
@@ -261,7 +264,7 @@ extension GlyphixTextLayer {
                     // No need to update the layer if the value is the same.
                     return
                 }
-                delegate?.updateBlurRadius(targetRadius, for: layer)
+                layer.setValue(targetRadius, forKeyPath: GaussianBlurFilter.inputRadiusKeyPath)
             }
         }
         var blurRadiusAnimation: AnimationState<CGFloat>?
@@ -330,8 +333,10 @@ extension GlyphixTextLayer {
                 self.offset = offset
                 opacityAnimation = .init(value: 0, velocity: .zero, target: 1)
                 opacity = 0
-                blurRadiusAnimation = .init(value: appearBlurRadius, velocity: 0, target: 0)
-                blurRadius = appearBlurRadius
+                if delegate?.isBlurEffectEnabled == true {
+                    blurRadiusAnimation = .init(value: appearBlurRadius, velocity: 0, target: 0)
+                    blurRadius = appearBlurRadius
+                }
                 updateTransform()
             case .disappear:
                 var scaleAnimation = scaleAnimation ?? .init(value: scale, velocity: .zero, target: Self.smallestScale)
@@ -347,9 +352,11 @@ extension GlyphixTextLayer {
                 opacityAnimation.target = 0
                 self.opacityAnimation = opacityAnimation
 
-                var blurRadiusAnimation = blurRadiusAnimation ?? .init(value: blurRadius, velocity: 0, target: disappearBlurRadius)
-                blurRadiusAnimation.target = disappearBlurRadius
-                self.blurRadiusAnimation = blurRadiusAnimation
+                if delegate?.isBlurEffectEnabled == true {
+                    var blurRadiusAnimation = blurRadiusAnimation ?? .init(value: blurRadius, velocity: 0, target: disappearBlurRadius)
+                    blurRadiusAnimation.target = disappearBlurRadius
+                    self.blurRadiusAnimation = blurRadiusAnimation
+                }
             }
         }
     }
@@ -370,12 +377,6 @@ extension GlyphixTextLayer: GlyphixTextLayer.LayerState.Delegate {
             layer.position = .init(x: targetFrame.midX, y: targetFrame.midY)
         }
         layer.transform = transform
-    }
-    
-    func updateBlurRadius(_ radius: CGFloat, for layer: CALayer) {
-        // If `isBlurEffectEnabled` is false, the blur effect is disabled.
-        // In this case, the blur radius should be set to 0.
-        layer.setValue(isBlurEffectEnabled ? radius : 0, forKeyPath: GaussianBlurFilter.inputRadiusKeyPath)
     }
 }
 

@@ -88,6 +88,12 @@ open class GlyphixTextLabel: PlatformView {
     }
 
     /// A Boolean value that indicates whether blur effect is enabled when transitioning text.
+    ///
+    /// Blur is a visual effect that incurs significant performance overhead.
+    /// When dealing with lengthy text, it is recommended to disable the blur effect to
+    ///achieve better performance and improve user experience.
+    ///
+    /// The default value for this property is `true`.
     public var isBlurEffectEnabled: Bool {
         set { textLayer.isBlurEffectEnabled = newValue }
         get { textLayer.isBlurEffectEnabled }
