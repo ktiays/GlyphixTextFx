@@ -87,6 +87,12 @@ open class GlyphixTextLabel: PlatformView {
         get { textLayer.disablesAnimations }
     }
 
+    /// A Boolean value that indicates whether blur effect is enabled when transitioning text.
+    public var isBlurEffectEnabled: Bool {
+        set { textLayer.isBlurEffectEnabled = newValue }
+        get { textLayer.isBlurEffectEnabled }
+    }
+    
     /// The preferred maximum width, in points, for a multiline label.
     public var preferredMaxLayoutWidth: CGFloat = 0 {
         didSet {

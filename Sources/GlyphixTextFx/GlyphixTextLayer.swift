@@ -15,6 +15,7 @@ import AppKit
 
 open class GlyphixTextLayer: CALayer {
 
+    /// The text that the label displays.
     public var text: String? {
         didSet {
             if text == attributedText?.string {
@@ -39,9 +40,20 @@ open class GlyphixTextLayer: CALayer {
         font ?? defaultFont
     }
 
+    /// The color of the text.
     public var textColor: PlatformColor = .glyphixDefaultColor {
         didSet {
+            if textColor == oldValue {
+                return
+            }
             colorAnimation.target = textColor.resolvedRgbColor(with: effectiveAppearance)
+            if disablesAnimations {
+                colorAnimation.velocity = .zero
+                colorAnimation.value = colorAnimation.target
+                for (layer, _) in layerStates {
+                    updateLayerColor(layer)
+                }
+            }
         }
     }
 
@@ -51,8 +63,12 @@ open class GlyphixTextLayer: CALayer {
         target: textColor.resolvedRgbColor(with: effectiveAppearance)
     )
 
+    /// A Boolean value that indicates the direction of the text animation.
     public var countsDown: Bool = false
 
+    /// The technique for aligning the text.
+    ///
+    /// The default value for this property is `left`.
     public var alignment: TextAlignment = .left {
         didSet {
             if oldValue == alignment {
@@ -104,7 +120,27 @@ open class GlyphixTextLayer: CALayer {
     }
 
     /// A Boolean value that indicates whether views should disable animations.
-    public var disablesAnimations: Bool = false
+    public var disablesAnimations: Bool = false {
+        didSet {
+            if oldValue == disablesAnimations || !disablesAnimations {
+                return
+            }
+            updateLayersToTarget()
+        }
+    }
+
+    /// A Boolean value that indicates whether blur effect is enabled when transitioning text.
+    public var isBlurEffectEnabled: Bool = true {
+        didSet {
+            if oldValue == isBlurEffectEnabled || isBlurEffectEnabled {
+                return
+            }
+
+            for (_, state) in layerStates {
+                state.blurRadius = 0
+            }
+        }
+    }
 
     private var containerBounds: CGRect = .zero
 
@@ -184,6 +220,7 @@ extension GlyphixTextLayer {
 
         protocol Delegate: AnyObject {
             func updateFrame(with state: GlyphixTextLayer.LayerState)
+            func updateBlurRadius(_ radius: CGFloat, for layer: CALayer)
         }
 
         var frame: CGRect = .zero {
@@ -214,15 +251,19 @@ extension GlyphixTextLayer {
         var opacity: Float = 1 {
             didSet { layer.opacity = opacity }
         }
-
         var opacityAnimation: AnimationState<Float>?
 
         var blurRadius: CGFloat = 0 {
             didSet {
-                layer.setValue(blurRadius, forKeyPath: GaussianBlurFilter.inputRadiusKeyPath)
+                // Avoid fractional blur radius for performance reasons.
+                let targetRadius = round(blurRadius)
+                if targetRadius == round(oldValue) {
+                    // No need to update the layer if the value is the same.
+                    return
+                }
+                delegate?.updateBlurRadius(targetRadius, for: layer)
             }
         }
-
         var blurRadiusAnimation: AnimationState<CGFloat>?
 
         var delay: TimeInterval = 0
@@ -330,6 +371,12 @@ extension GlyphixTextLayer: GlyphixTextLayer.LayerState.Delegate {
         }
         layer.transform = transform
     }
+    
+    func updateBlurRadius(_ radius: CGFloat, for layer: CALayer) {
+        // If `isBlurEffectEnabled` is false, the blur effect is disabled.
+        // In this case, the blur radius should be set to 0.
+        layer.setValue(isBlurEffectEnabled ? radius : 0, forKeyPath: GaussianBlurFilter.inputRadiusKeyPath)
+    }
 }
 
 extension GlyphixTextLayer {
@@ -339,6 +386,13 @@ extension GlyphixTextLayer {
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
         layer.needsDisplayOnBoundsChange = true
+
+        #if os(iOS)
+        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen.scale ?? 2
+        #elseif os(macOS)
+        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen?.backingScaleFactor ?? 2
+        #endif
+        layer.contentsScale = contentsScale
 
         var filters: [Any] = []
         if var colorFilter = ColorAddFilter() {
@@ -441,6 +495,11 @@ extension GlyphixTextLayer {
             }
         }
 
+        if disablesAnimations {
+            updateLayersToTarget()
+            return
+        }
+
         let invalidStates = layerStates.filter {
             $1.invalid
         }
@@ -473,6 +532,10 @@ extension GlyphixTextLayer {
     }
 
     func animateTransition(with context: VSyncEventContext) {
+        if disablesAnimations {
+            return
+        }
+
         #if DEBUG && os(iOS)
         let animationFactor: TimeInterval = 1 / TimeInterval(UIAnimationDragCoefficient())
         #else
@@ -515,21 +578,7 @@ extension GlyphixTextLayer {
                 removeStates.append(state)
             }
         }
-        for state in removeStates {
-            let layer = state.layer
-            layer.removeFromSuperlayer()
-            layerStates.removeValue(forKey: layer)
-            guard let key = state.key else {
-                continue
-            }
-            guard let container = glyphStates[key] else {
-                continue
-            }
-            container.removeAll { $0 === state }
-            if container.isEmpty {
-                glyphStates.removeValue(forKey: key)
-            }
-        }
+        cleanUpStates(removeStates)
     }
 
     func updateLayerState(_ state: LayerState, deltaTime: TimeInterval) {
@@ -603,7 +652,7 @@ extension GlyphixTextLayer {
             }
         }
 
-        if var blurRadiusAnimation = state.blurRadiusAnimation {
+        if var blurRadiusAnimation = state.blurRadiusAnimation, isBlurEffectEnabled {
             bouncySpring.update(
                 value: &blurRadiusAnimation.value,
                 velocity: &blurRadiusAnimation.velocity,
@@ -619,6 +668,60 @@ extension GlyphixTextLayer {
             }
         }
     }
+
+    private func cleanUpStates(_ states: [LayerState]) {
+        for state in states {
+            let layer = state.layer
+            layer.removeFromSuperlayer()
+            layerStates.removeValue(forKey: layer)
+            guard let key = state.key else {
+                continue
+            }
+            guard let container = glyphStates[key] else {
+                continue
+            }
+            container.removeAll { $0 === state }
+            if container.isEmpty {
+                glyphStates.removeValue(forKey: key)
+            }
+        }
+    }
+
+    /// Directly update the state of the layer to its final state cancel all animations.
+    private func updateLayersToTarget() {
+        var needsRemove: [LayerState] = []
+        let needsRedraw = !colorAnimation.isCompleted
+        colorAnimation.velocity = .zero
+        colorAnimation.value = colorAnimation.target
+        for (_, state) in layerStates {
+            if state.invalid {
+                needsRemove.append(state)
+                state.layer.removeFromSuperlayer()
+                continue
+            }
+            state.frameAnimation = nil
+            state.presentationFrame = state.frame
+            state.scaleAnimation = nil
+            state.scale = 1
+            state.offsetAnimation = nil
+            state.offset = 0
+            state.opacityAnimation = nil
+            state.opacity = 1
+            state.blurRadiusAnimation = nil
+            state.blurRadius = 0
+            state.updateTransform()
+
+            let layer = state.layer
+
+            if needsRedraw {
+                updateLayerColor(layer)
+            }
+
+            layer.setNeedsDisplay()
+            layer.displayIfNeeded()
+        }
+        cleanUpStates(needsRemove)
+    }
 }
 
 // MARK: - CALayerDelegate
@@ -633,19 +736,8 @@ extension GlyphixTextLayer: CALayerDelegate {
         guard let state = layerStates[layer],
             let font = state.font,
             var glyph = state.glyph
-        else { return }
-
-        #if os(iOS)
-        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen.scale ?? 2
-        #elseif os(macOS)
-        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen?.backingScaleFactor ?? 1
-        #endif
-
-        if layer.contentsScale != contentsScale {
-            layer.contentsScale = contentsScale
-            DispatchQueue.main.async {
-                layer.setNeedsDisplay()
-            }
+        else {
+            assertionFailure("invalid layer state")
             return
         }
 
@@ -658,7 +750,7 @@ extension GlyphixTextLayer: CALayerDelegate {
         }
         ctx.translateBy(x: 0, y: layer.bounds.height)
         ctx.scaleBy(x: 1, y: -1)
-        
+
         if state.frameAnimation?.isCompleted == false {
             // Ensure the glyph is drawn correctly in a scaled layer.
             ctx.scaleBy(

@@ -95,6 +95,18 @@ final class ViewController: UIViewController {
                 glyphixLabel.lineBreakMode = lineBreakMode
             }
             .store(in: &cancellables)
+        
+        labelConfiguration.$isAnimationEnabled
+            .sink { [unowned self] isAnimationEnabled in
+                glyphixLabel.disablesAnimations = !isAnimationEnabled
+            }
+            .store(in: &cancellables)
+        
+        labelConfiguration.$isBlurEffectEnabled
+            .sink { [unowned self] isBlurEffectEnabled in
+                glyphixLabel.isBlurEffectEnabled = isBlurEffectEnabled
+            }
+            .store(in: &cancellables)
     }
 
     override func viewWillLayoutSubviews() {
