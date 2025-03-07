@@ -92,7 +92,16 @@ open class GlyphixTextLayer: CALayer {
     }
 
     /// A Boolean value that specifies whether to enable font smoothing.
-    public var isSmoothRenderingEnabled: Bool = false
+    public var isSmoothRenderingEnabled: Bool = false {
+        didSet {
+            if isSmoothRenderingEnabled == oldValue {
+                return
+            }
+            layerStates.forEach {
+                $0.0.setNeedsDisplay()
+            }
+        }
+    }
 
     /// A Boolean value that indicates whether views should disable animations.
     public var disablesAnimations: Bool = false

@@ -45,6 +45,10 @@ open class GlyphixTextLabel: PlatformView {
         get { textLayer.textColor }
     }
 
+    /// A Boolean value that indicates the direction of the text animation.
+    ///
+    /// Set this property to `true` to animate the text moving downward, or `false` to animate it moving upward.
+    /// This direction applies to the visual motion of the text content during the transition.
     public var countsDown: Bool {
         set { textLayer.countsDown = newValue }
         get { textLayer.countsDown }

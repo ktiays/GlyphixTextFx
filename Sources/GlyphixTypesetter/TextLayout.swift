@@ -13,7 +13,7 @@ import AppKit
 #endif
 
 /// Constants that specify text alignment.
-public enum TextAlignment {
+public enum TextAlignment: CaseIterable {
     /// Text is left-aligned.
     case left
     /// Text is center-aligned.
