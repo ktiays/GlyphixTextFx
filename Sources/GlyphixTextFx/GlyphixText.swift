@@ -13,6 +13,7 @@ public struct GlyphixText {
     public var text: String
     public var font: PlatformFont
     public var textColor: PlatformColor
+    public var countsDown: Bool
 
     /// Creates a text view that displays a stored string without localization.
     public init<S>(_ text: S) where S: StringProtocol {
@@ -28,11 +29,13 @@ public struct GlyphixText {
     private init(
         text: String,
         font: PlatformFont = .glyphixDefaultFont,
-        textColor: PlatformColor = .glyphixDefaultColor
+        textColor: PlatformColor = .glyphixDefaultColor,
+        countsDown: Bool = false
     ) {
         self.text = text
         self.font = font
         self.textColor = textColor
+        self.countsDown = countsDown
     }
 
     /// Sets the font for text in the view.
@@ -48,11 +51,19 @@ public struct GlyphixText {
         copy.textColor = color
         return copy
     }
+    
+    /// Sets the direction of the text animation.
+    public func countsDown(_ countsDown: Bool = false) -> Self {
+        var copy = self
+        copy.countsDown = countsDown
+        return copy
+    }
 
     private func updateView(_ view: GlyphixTextLabel) {
         view.font = font
         view.text = text
         view.textColor = textColor
+        view.countsDown = countsDown
     }
 
     @available(iOS 16.0, macOS 13.0, *)
