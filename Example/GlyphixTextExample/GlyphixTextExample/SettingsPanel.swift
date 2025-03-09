@@ -12,7 +12,7 @@ final class LabelConfiguration: ObservableObject {
     @Published var textColor: UIColor = .label
     @Published var numberOfLines: Int = 1
     @Published var countsDown: Bool = false
-    @Published var alignment: GlyphixTextFx.TextAlignment = .left
+    @Published var alignment: GlyphixTextFx.TextAlignment = .leading
     @Published var lineBreakMode: NSLineBreakMode = .byTruncatingTail
 
     @Published var isAnimationEnabled: Bool = true
@@ -23,12 +23,12 @@ final class LabelConfiguration: ObservableObject {
 extension GlyphixTextFx.TextAlignment: @retroactive CustomStringConvertible {
     public var description: String {
         switch self {
-        case .left:
-            "Left"
         case .center:
             "Center"
-        case .right:
-            "Right"
+        case .leading:
+            "Leading"
+        case .trailing:
+            "Trailing"
         }
     }
 }

@@ -15,9 +15,10 @@ A label component that provides content transition animations like SwiftUI's `nu
 - Smooth rendering option for improved text appearance
 - Works with both UIKit/AppKit and SwiftUI
 
-## Requirements
+## Supported Platforms
 
-- iOS 13.0+ / macOS 11.0+
+- iOS 13.0+
+- macOS 11.0+
 
 ## Installation
 
