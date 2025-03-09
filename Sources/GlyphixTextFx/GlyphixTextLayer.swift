@@ -69,7 +69,7 @@ open class GlyphixTextLayer: CALayer {
     /// The technique for aligning the text.
     ///
     /// The default value for this property is `left`.
-    public var alignment: TextAlignment = .left {
+    public var alignment: TextAlignment = .leading {
         didSet {
             if oldValue == alignment {
                 return

@@ -12,14 +12,14 @@ import UIKit
 import AppKit
 #endif
 
-/// Constants that specify text alignment.
+/// An alignment position for text along the horizontal axis.
 public enum TextAlignment: CaseIterable {
-    /// Text is left-aligned.
-    case left
     /// Text is center-aligned.
     case center
+    /// Text is left-aligned.
+    case leading
     /// Text is right-aligned.
-    case right
+    case trailing
 }
 
 public class TextLayout {
@@ -56,7 +56,7 @@ public class TextLayout {
             text: String,
             font: PlatformFont,
             containerBounds: CGRect,
-            alignment: TextAlignment = .left,
+            alignment: TextAlignment = .leading,
             lineBreakMode: NSLineBreakMode = .byTruncatingTail,
             numberOfLines: Int = 1
         ) {
@@ -170,11 +170,11 @@ extension TextLayout.Builder {
             }
             let alignmentHorizontalOffset: CGFloat =
                 switch alignment {
-                case .left:
+                case .leading:
                     0
                 case .center:
                     (containerBounds.width - lineBounds.width) / 2
-                case .right:
+                case .trailing:
                     containerBounds.width - lineBounds.width
                 }
             let alignmentVerticalOffset = (containerBounds.height - textBounds.height) / 2
