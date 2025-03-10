@@ -62,8 +62,8 @@ import GlyphixTextFx
 struct ContentView: View {
     var body: some View {
         GlyphixText("1234567890")
-            .font(UIFont.systemFont(ofSize: 36, weight: .bold))
-            .textColor(.systemBlue)
+            .glyphixLabelFont(.systemFont(ofSize: 36, weight: .bold))
+            .glyphixLabelColor(.systemBlue)
     }
 }
 ```
