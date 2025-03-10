@@ -31,11 +31,7 @@ public struct GlyphixText {
         self.init(text: .init(localized: resource))
     }
     
-    private init(
-        text: String,
-        countsDown: Bool = false,
-        lineLimit: Int = 1
-    ) {
+    private init(text: String, countsDown: Bool = false) {
         self.text = text
         self.countsDown = countsDown
     }
@@ -55,6 +51,7 @@ public struct GlyphixText {
         case .head: .byTruncatingHead
         case .middle: .byTruncatingMiddle
         case .tail: .byTruncatingTail
+        @unknown default: .byWordWrapping
         }
         view.disablesAnimations = !animateChanges
         view.isBlurEffectEnabled = isBlurEffectEnabled
