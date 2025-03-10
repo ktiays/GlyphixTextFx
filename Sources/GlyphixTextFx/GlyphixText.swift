@@ -13,7 +13,6 @@ public struct GlyphixText {
     public var text: String
     public var countsDown: Bool
     
-    @Environment(\.self) private var _environmentValues
     @Environment(\.glyphixLabelFont) private var font
     @Environment(\.glyphixLabelColor) private var textColor
     @Environment(\.truncationMode) private var truncationMode
