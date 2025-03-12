@@ -13,8 +13,8 @@ public struct GlyphixText {
     public var text: String
     public var countsDown: Bool
     
-    @Environment(\.glyphixLabelFont) private var font
-    @Environment(\.glyphixLabelColor) private var textColor
+    @Environment(\.glyphixTextFont) private var font
+    @Environment(\.glyphixTextColor) private var textColor
     @Environment(\.truncationMode) private var truncationMode
     @Environment(\.multilineTextAlignment) private var textAlignment
     @Environment(\.lineLimit) private var lineLimit
@@ -41,7 +41,7 @@ public struct GlyphixText {
         view.font = font ?? .glyphixDefaultFont
         view.textColor = textColor ?? .glyphixDefaultColor
         view.countsDown = countsDown
-        view.numberOfLines = lineLimit ?? 0
+        view.numberOfLines = lineLimit ?? 1
         view.textAlignment = switch textAlignment {
         case .leading: .leading
         case .center: .center
