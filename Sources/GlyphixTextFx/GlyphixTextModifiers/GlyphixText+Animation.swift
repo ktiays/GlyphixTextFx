@@ -6,6 +6,7 @@
 import SwiftUI
 
 extension View {
+    
     /// Sets whether label should disable animations.
     public func glyphixTextAnimationDisabled(_ disabled: Bool = true) -> some View {
         transformEnvironment(\.disablesGlyphixTextAnimations) { disablesAnimations in
