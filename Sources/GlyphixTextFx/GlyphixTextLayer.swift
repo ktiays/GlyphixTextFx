@@ -173,10 +173,10 @@ open class GlyphixTextLayer: CALayer {
             return
         }
         lastFrameTimestamp = nil
-        displaySyncObserver.frameUpdateHandler = { [unowned self] context in
+        displaySyncObserver.frameUpdateHandler = { [weak self] context in
             CATransaction.begin()
             CATransaction.setDisableActions(true)
-            animateTransition(with: context)
+            self?.animateTransition(with: context)
             CATransaction.commit()
         }
     }
