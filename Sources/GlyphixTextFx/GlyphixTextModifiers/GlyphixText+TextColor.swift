@@ -1,8 +1,6 @@
 //
-//  GlyphixText+TextColor.swift
-//  GlyphixTextFx
-//
 //  Created by LiYanan2004 on 2025/3/10.
+//  Copyright (c) 2025 ktiays. All rights reserved.
 //
 
 import SwiftUI

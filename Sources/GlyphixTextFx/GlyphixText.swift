@@ -19,24 +19,25 @@ public struct GlyphixText {
     @Environment(\.multilineTextAlignment) private var textAlignment
     @Environment(\.lineLimit) private var lineLimit
     @Environment(\.blursDuringTransition) private var isBlurEffectEnabled
+    @Environment(\.disablesGlyphixTextAnimations) private var disablesAnimations
     
     /// Creates a text view that displays a stored string without localization.
-    public init<S>(_ text: S) where S: StringProtocol {
-        self.init(text: .init(text))
+    public init<S>(_ text: S, countsDown: Bool = false) where S: StringProtocol {
+        self.init(text: .init(text), countsDown: countsDown)
     }
     
     /// Creates a text view that displays a localized string resource.
     @available(iOS 16.0, macOS 13.0, *)
-    public init(_ resource: LocalizedStringResource) {
-        self.init(text: .init(localized: resource))
+    public init(_ resource: LocalizedStringResource, countsDown: Bool = false) {
+        self.init(text: .init(localized: resource), countsDown: true)
     }
     
-    private init(text: String, countsDown: Bool = false) {
+    private init(text: String, countsDown: Bool) {
         self.text = text
         self.countsDown = countsDown
     }
     
-    private func updateView(_ view: GlyphixTextLabel, animateChanges: Bool) {
+    private func updateView(_ view: GlyphixTextLabel) {
         view.text = text
         view.font = font ?? .glyphixDefaultFont
         view.textColor = textColor ?? .glyphixDefaultColor
@@ -53,7 +54,7 @@ public struct GlyphixText {
         case .tail: .byTruncatingTail
         @unknown default: .byWordWrapping
         }
-        view.disablesAnimations = !animateChanges
+        view.disablesAnimations = disablesAnimations
         view.isBlurEffectEnabled = isBlurEffectEnabled
     }
     
@@ -93,9 +94,7 @@ extension GlyphixText: UIViewRepresentable {
     }
     
     public func updateUIView(_ uiView: GlyphixTextLabel, context: Context) {
-        let transaction = context.transaction
-        let animateChanges = transaction.animation != nil && !transaction.disablesAnimations
-        updateView(uiView, animateChanges: animateChanges)
+        updateView(uiView)
     }
     
     @available(iOS 16.0, *)
@@ -113,9 +112,7 @@ extension GlyphixText: NSViewRepresentable {
     }
     
     public func updateNSView(_ nsView: GlyphixTextLabel, context: Context) {
-        let transaction = context.transaction
-        let animateChanges = transaction.animation != nil && !transaction.disablesAnimations
-        updateView(nsView, animateChanges: animateChanges)
+        updateView(nsView)
     }
     
     @available(macOS 13.0, *)
@@ -124,3 +121,55 @@ extension GlyphixText: NSViewRepresentable {
     }
 }
 #endif
+
+// MARK: - Deprecated
+
+extension GlyphixText {
+    /// Sets the font for text in the view.
+    @available(*, deprecated, renamed: "glyphixTextFont")
+    public func font(_ font: PlatformFont) -> GlyphixText {
+        self
+    }
+    
+    /// Sets the technique for aligning the text.
+    @available(*, deprecated, message: "Use `View.multilineTextAlignment(_:)` instead.")
+    public func textAlignment(_ alignment: TextAlignment) -> GlyphixText {
+        self
+    }
+    
+    /// Sets the maximum number of lines that text can occupy in this view.
+    @available(*, deprecated, message: "Use `View.lineLimit(_:)` instead.")
+    public func lineLimit(_ limit: Int) -> GlyphixText {
+        self
+    }
+    
+    /// Sets the color of the text displayed by this view.
+    @available(*, deprecated, renamed: "glyphixTextColor")
+    public func textColor(_ color: PlatformColor) -> GlyphixText {
+        self
+    }
+    
+    /// Sets the direction of the text animation.
+    @available(*, deprecated, message: "Use `GlyphixText(_:countsDown:)` instead.")
+    public func countsDown(_ countsDown: Bool = false) -> Self {
+        self
+    }
+    
+    /// Sets the technique for wrapping and truncating the label's text.
+    @available(*, deprecated, renamed: "truncationMode")
+    public func lineBreakMode(_ mode: NSLineBreakMode) -> Self {
+        self
+    }
+    
+    /// Sets whether label should disable animations.
+    @available(*, deprecated, renamed: "glyphixTextAnimationDisabled")
+    public func disablesAnimations(_ disables: Bool) -> Self {
+        self
+    }
+    
+    /// Sets whether label should disable blur effect.
+    @available(*, deprecated, renamed: "glyphixTextBlurEffectDisabled")
+    public func disablesBlurEffect(_ disables: Bool) -> Self {
+        self
+    }
+}
