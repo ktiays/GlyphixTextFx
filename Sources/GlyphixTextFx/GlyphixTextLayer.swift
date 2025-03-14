@@ -21,7 +21,7 @@ open class GlyphixTextLayer: CALayer {
             if text == attributedText?.string {
                 return
             }
-            updateTextLayout()
+            setNeedsUpdateTextLayout()
         }
     }
     private var attributedText: NSAttributedString?
@@ -31,7 +31,7 @@ open class GlyphixTextLayer: CALayer {
             if font == oldValue {
                 return
             }
-            updateTextLayout()
+            setNeedsUpdateTextLayout()
         }
     }
     private let defaultFont: PlatformFont = .glyphixDefaultFont
@@ -74,7 +74,7 @@ open class GlyphixTextLayer: CALayer {
             if oldValue == alignment {
                 return
             }
-            updateTextLayout()
+            setNeedsUpdateTextLayout()
         }
     }
 
@@ -84,7 +84,7 @@ open class GlyphixTextLayer: CALayer {
             if oldValue == lineBreakMode {
                 return
             }
-            updateTextLayout()
+            setNeedsUpdateTextLayout()
         }
     }
 
@@ -103,7 +103,7 @@ open class GlyphixTextLayer: CALayer {
             if oldValue == numberOfLines {
                 return
             }
-            updateTextLayout()
+            setNeedsUpdateTextLayout()
         }
     }
 
@@ -148,6 +148,7 @@ open class GlyphixTextLayer: CALayer {
     private var textLayout: TextLayout?
     private var layerStates: [CALayer: LayerState] = [:]
     private var glyphStates: [String: ArrayContainer<LayerState>] = [:]
+    private var isLayoutDirty: Bool = false
 
     private let smoothSpring: Spring = .smooth
     private let snappySpring: Spring = .init(duration: 0.3)
@@ -190,9 +191,12 @@ open class GlyphixTextLayer: CALayer {
 
         if containerBounds != bounds {
             containerBounds = bounds
-            updateTextLayout()
-            setNeedsLayout()
+            setNeedsUpdateTextLayout()
             return
+        }
+        
+        if isLayoutDirty {
+            updateTextLayout()
         }
 
         for (_, state) in layerStates {
@@ -420,9 +424,7 @@ extension GlyphixTextLayer {
         return container
     }
 
-    private func updateTextLayout() {
-        layerStates.forEach { $1.invalid = true }
-
+    private func setNeedsUpdateTextLayout() {
         if let text {
             let textLayoutBuilder = TextLayout.Builder(
                 text: text,
@@ -436,7 +438,15 @@ extension GlyphixTextLayer {
         } else {
             self.textLayout = nil
         }
-
+        
+        isLayoutDirty = true
+        setNeedsLayout()
+    }
+    
+    private func updateTextLayout() {
+        defer { isLayoutDirty = false }
+        layerStates.forEach { $1.invalid = true }
+        
         var stateNeedsAppearAnimation: [LayerState] = []
         if let textLayout {
             nextGlyph: for placedGlyph in textLayout.placedGlyphs {
