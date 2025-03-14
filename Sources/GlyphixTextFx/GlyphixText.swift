@@ -11,113 +11,84 @@ import SwiftUI
 public struct GlyphixText {
 
     public var text: String
-    public var font: PlatformFont
-    public var textColor: PlatformColor
     public var countsDown: Bool
-    public var textAlignment: TextAlignment
-    public var lineBreakMode: NSLineBreakMode
-    public var lineLimit: Int
-    public var isAnimationEnabled: Bool
-    public var isBlurEffectEnabled: Bool
+
+    private var font: PlatformFont?
+    private var textColor: PlatformColor?
+    private var lineBreakMode: NSLineBreakMode?
+    private var alignment: TextAlignment?
+    private var lineLimit: Int?
+    private var isBlurEffectEnabled: Bool?
+    private var isAnimationDisabled: Bool?
+
+    @Environment(\.glyphixTextFont) private var environmentFont
+    @Environment(\.glyphixTextColor) private var environmentTextColor
+    @Environment(\.truncationMode) private var environmentTruncationMode
+    @Environment(\.multilineTextAlignment) private var environmentTextAlignment
+    @Environment(\.lineLimit) private var environmentLineLimit
+    @Environment(\.blursDuringTransition) private var environmentBlursDuringTransition
+    @Environment(\.disablesGlyphixTextAnimations) private var environmentDisablesAnimations
 
     /// Creates a text view that displays a stored string without localization.
-    public init<S>(_ text: S) where S: StringProtocol {
-        self.init(text: .init(text))
+    public init<S>(_ text: S, countsDown: Bool = false) where S: StringProtocol {
+        self.init(text: .init(text), countsDown: countsDown)
     }
 
     /// Creates a text view that displays a localized string resource.
     @available(iOS 16.0, macOS 13.0, *)
-    public init(_ resource: LocalizedStringResource) {
-        self.init(text: .init(localized: resource))
+    public init(_ resource: LocalizedStringResource, countsDown: Bool = false) {
+        self.init(text: .init(localized: resource), countsDown: true)
     }
 
-    private init(
-        text: String,
-        font: PlatformFont = .glyphixDefaultFont,
-        textColor: PlatformColor = .glyphixDefaultColor,
-        countsDown: Bool = false,
-        textAlignment: TextAlignment = .leading,
-        lineLimit: Int = 1,
-        lineBreakMode: NSLineBreakMode = .byTruncatingTail,
-        isAnimationEnabled: Bool = true,
-        isBlurEffectEnabled: Bool = true
-    ) {
+    private init(text: String, countsDown: Bool) {
         self.text = text
-        self.font = font
-        self.textColor = textColor
         self.countsDown = countsDown
-        self.textAlignment = textAlignment
-        self.lineLimit = lineLimit
-        self.lineBreakMode = lineBreakMode
-        self.isAnimationEnabled = isAnimationEnabled
-        self.isBlurEffectEnabled = isBlurEffectEnabled
-    }
-
-    /// Sets the font for text in the view.
-    public func font(_ font: PlatformFont) -> GlyphixText {
-        var copy = self
-        copy.font = font
-        return copy
-    }
-
-    /// Sets the technique for aligning the text.
-    public func textAlignment(_ alignment: TextAlignment) -> GlyphixText {
-        var copy = self
-        copy.textAlignment = alignment
-        return copy
-    }
-
-    /// Sets the maximum number of lines that text can occupy in this view.
-    public func lineLimit(_ limit: Int) -> GlyphixText {
-        var copy = self
-        copy.lineLimit = limit
-        return copy
-    }
-
-    /// Sets the color of the text displayed by this view.
-    public func textColor(_ color: PlatformColor) -> GlyphixText {
-        var copy = self
-        copy.textColor = color
-        return copy
-    }
-
-    /// Sets the direction of the text animation.
-    public func countsDown(_ countsDown: Bool = false) -> Self {
-        var copy = self
-        copy.countsDown = countsDown
-        return copy
-    }
-    
-    /// Sets the technique for wrapping and truncating the label's text.
-    public func lineBreakMode(_ mode: NSLineBreakMode) -> Self {
-        var copy = self
-        copy.lineBreakMode = mode
-        return copy
-    }
-
-    /// Sets whether label should disable animations.
-    public func disablesAnimations(_ disables: Bool) -> Self {
-        var copy = self
-        copy.isAnimationEnabled = !disables
-        return copy
-    }
-
-    /// Sets whether label should disable blur effect.
-    public func disablesBlurEffect(_ disables: Bool) -> Self {
-        var copy = self
-        copy.isBlurEffectEnabled = !disables
-        return copy
     }
 
     private func updateView(_ view: GlyphixTextLabel) {
-        view.font = font
         view.text = text
-        view.textColor = textColor
+        view.font = font ?? (environmentFont ?? .glyphixDefaultFont)
+        view.textColor = textColor ?? (environmentTextColor ?? .glyphixDefaultColor)
         view.countsDown = countsDown
-        view.numberOfLines = lineLimit
-        view.textAlignment = textAlignment
-        view.disablesAnimations = !isAnimationEnabled
-        view.isBlurEffectEnabled = isBlurEffectEnabled
+        view.numberOfLines = lineLimit ?? (environmentLineLimit ?? 0)
+        view.textAlignment =
+            if let alignment {
+                alignment
+            } else {
+                textAlignment(from: environmentTextAlignment)
+            }
+        view.lineBreakMode =
+            if let lineBreakMode {
+                lineBreakMode
+            } else {
+                lineBreakMode(from: environmentTruncationMode)
+            }
+        view.disablesAnimations = isAnimationDisabled ?? environmentDisablesAnimations
+        view.isBlurEffectEnabled = isBlurEffectEnabled ?? environmentBlursDuringTransition
+    }
+
+    private func textAlignment(from alignment: SwiftUI.TextAlignment) -> TextAlignment {
+        switch alignment {
+        case .leading:
+            .leading
+        case .center:
+            .center
+        case .trailing:
+            .trailing
+        }
+    }
+
+    private func lineBreakMode(from truncationMode: Text.TruncationMode) -> NSLineBreakMode {
+        switch truncationMode {
+        case .head:
+            .byTruncatingHead
+        case .middle:
+            .byTruncatingMiddle
+        case .tail:
+            .byTruncatingTail
+        @unknown default:
+            .byWordWrapping
+        }
     }
 
     @available(iOS 16.0, macOS 13.0, *)
@@ -155,7 +126,7 @@ extension GlyphixText: UIViewRepresentable {
         .init()
     }
 
-    public func updateUIView(_ uiView: GlyphixTextLabel, context _: Context) {
+    public func updateUIView(_ uiView: GlyphixTextLabel, context: Context) {
         updateView(uiView)
     }
 
@@ -183,3 +154,103 @@ extension GlyphixText: NSViewRepresentable {
     }
 }
 #endif
+
+extension GlyphixText {
+
+    /// Sets the font for text in the view.
+    @available(*, deprecated, renamed: "glyphixTextFont")
+    public func font(_ font: PlatformFont) -> Self {
+        glyphixTextFont(font)
+    }
+
+    /// Sets the font for text in the view.
+    public func glyphixTextFont(_ font: PlatformFont) -> Self {
+        var view = self
+        view.font = font
+        return view
+    }
+
+    /// Sets the technique for aligning the text.
+    @available(*, deprecated, message: "Use `View.multilineTextAlignment(_:)` instead.")
+    public func textAlignment(_ alignment: TextAlignment) -> Self {
+        var view = self
+        view.alignment = alignment
+        return view
+    }
+
+    /// Sets the alignment of a text view that contains multiple lines of text.
+    public func multilineTextAlignment(_ alignment: SwiftUI.TextAlignment) -> Self {
+        var view = self
+        view.alignment = textAlignment(from: alignment)
+        return view
+    }
+
+    /// Sets the maximum number of lines that text can occupy in this view.
+    public func lineLimit(_ limit: Int?) -> Self {
+        var view = self
+        view.lineLimit = limit
+        return view
+    }
+
+    /// Sets the color of the text displayed by this view.
+    @available(*, deprecated, renamed: "glyphixTextColor")
+    public func textColor(_ color: PlatformColor) -> Self {
+        glyphixTextColor(color)
+    }
+
+    /// Sets the color of the text displayed by this view.
+    public func glyphixTextColor(_ color: PlatformColor) -> Self {
+        var view = self
+        view.textColor = color
+        return view
+    }
+
+    /// Sets the direction of the text animation.
+    @available(*, deprecated, message: "Use `GlyphixText(_:countsDown:)` instead.")
+    public func countsDown(_ countsDown: Bool = false) -> Self {
+        var view = self
+        view.countsDown = countsDown
+        return view
+    }
+
+    /// Sets the technique for wrapping and truncating the label's text.
+    @available(*, deprecated, renamed: "truncationMode")
+    public func lineBreakMode(_ mode: NSLineBreakMode) -> Self {
+        var view = self
+        view.lineBreakMode = mode
+        return view
+    }
+
+    /// Sets the truncation mode for lines of text that are too long to fit in the available space.
+    public func truncationMode(_ mode: Text.TruncationMode) -> Self {
+        var view = self
+        view.lineBreakMode = lineBreakMode(from: mode)
+        return view
+    }
+
+    /// Sets whether label should disable animations.
+    @available(*, deprecated, renamed: "glyphixTextAnimationDisabled")
+    public func disablesAnimations(_ disables: Bool = true) -> Self {
+        glyphixTextAnimationDisabled(disables)
+    }
+
+    /// Sets whether label should disable animations.
+    public func glyphixTextAnimationDisabled(_ disables: Bool = true) -> Self {
+        var view = self
+        view.isAnimationDisabled = disables
+        return view
+    }
+
+    /// Sets whether label should disable blur effect.
+    @available(*, deprecated, renamed: "glyphixTextBlurEffectDisabled")
+    public func disablesBlurEffect(_ disables: Bool = true) -> Self {
+        glyphixTextBlurEffectDisabled(disables)
+    }
+
+    /// Sets whether label should disable blur effect.
+    public func glyphixTextBlurEffectDisabled(_ disables: Bool = true) -> Self {
+        var view = self
+        view.isBlurEffectEnabled = disables
+        return view
+    }
+}
