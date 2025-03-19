@@ -43,9 +43,6 @@ open class GlyphixTextLayer: CALayer {
     /// The color of the text.
     public var textColor: PlatformColor = .glyphixDefaultColor {
         didSet {
-            if textColor == oldValue {
-                return
-            }
             colorAnimation.target = textColor.resolvedRgbColor(with: effectiveAppearance)
             if disablesAnimations {
                 colorAnimation.velocity = .zero
