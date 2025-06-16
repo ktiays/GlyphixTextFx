@@ -95,7 +95,7 @@ open class GlyphixTextLayer: CALayer {
     }
 
     /// The maximum number of lines for rendering text.
-    public var numberOfLines: Int = 1 {
+    open var numberOfLines: Int = 1 {
         didSet {
             if oldValue == numberOfLines {
                 return
@@ -105,7 +105,7 @@ open class GlyphixTextLayer: CALayer {
     }
 
     /// A Boolean value that specifies whether to enable font smoothing.
-    public var isSmoothRenderingEnabled: Bool = false {
+    open var isSmoothRenderingEnabled: Bool = false {
         didSet {
             if isSmoothRenderingEnabled == oldValue {
                 return

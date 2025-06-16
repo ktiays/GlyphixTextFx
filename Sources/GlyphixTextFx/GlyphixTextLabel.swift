@@ -17,7 +17,7 @@ open class GlyphixTextLabel: PlatformView {
     /// The text that the label displays.
     ///
     /// This property is animatable.
-    public var text: String? {
+    open var text: String? {
         set {
             textLayer.text = newValue
             _invalidateIntrinsicContentSize()
@@ -28,7 +28,7 @@ open class GlyphixTextLabel: PlatformView {
     /// The font of the text.
     ///
     /// The default value for this property is the system font at a size of 17 points.
-    public var font: PlatformFont? {
+    open var font: PlatformFont? {
         set {
             textLayer.font = newValue
             _invalidateIntrinsicContentSize()
@@ -40,7 +40,7 @@ open class GlyphixTextLabel: PlatformView {
     ///
     /// The default value for this property is the system's label color.
     /// This property is animatable.
-    public var textColor: PlatformColor {
+    open var textColor: PlatformColor {
         set { textLayer.textColor = newValue }
         get { textLayer.textColor }
     }
@@ -49,7 +49,7 @@ open class GlyphixTextLabel: PlatformView {
     ///
     /// Set this property to `true` to animate the text moving downward, or `false` to animate it moving upward.
     /// This direction applies to the visual motion of the text content during the transition.
-    public var countsDown: Bool {
+    open var countsDown: Bool {
         set { textLayer.countsDown = newValue }
         get { textLayer.countsDown }
     }
@@ -57,13 +57,13 @@ open class GlyphixTextLabel: PlatformView {
     /// The technique for aligning the text.
     ///
     /// The default value for this property is `left`.
-    public var textAlignment: TextAlignment {
+    open var textAlignment: TextAlignment {
         set { textLayer.alignment = newValue }
         get { textLayer.alignment }
     }
 
     /// The technique for wrapping and truncating the label's text.
-    public var lineBreakMode: NSLineBreakMode {
+    open var lineBreakMode: NSLineBreakMode {
         set { textLayer.lineBreakMode = newValue }
         get { textLayer.lineBreakMode }
     }
@@ -73,7 +73,7 @@ open class GlyphixTextLabel: PlatformView {
     /// This property controls the maximum number of lines to use in order to fit the label's text into
     /// its bounding rectangle. The default value for this property is `1`. To remove any maximum limit,
     /// and use as many lines as needed, set the value of this property to `0`.
-    public var numberOfLines: Int {
+    open var numberOfLines: Int {
         set {
             textLayer.numberOfLines = newValue
             _invalidateIntrinsicContentSize()
@@ -82,7 +82,7 @@ open class GlyphixTextLabel: PlatformView {
     }
 
     /// A Boolean value that indicates whether views should disable animations.
-    public var disablesAnimations: Bool {
+    open var disablesAnimations: Bool {
         set { textLayer.disablesAnimations = newValue }
         get { textLayer.disablesAnimations }
     }
@@ -94,7 +94,7 @@ open class GlyphixTextLabel: PlatformView {
     ///achieve better performance and improve user experience.
     ///
     /// The default value for this property is `true`.
-    public var isBlurEffectEnabled: Bool {
+    open var isBlurEffectEnabled: Bool {
         set { textLayer.isBlurEffectEnabled = newValue }
         get { textLayer.isBlurEffectEnabled }
     }
@@ -120,22 +120,22 @@ open class GlyphixTextLabel: PlatformView {
     /// A Boolean value that specifies whether to enable font smoothing.
     ///
     /// The default value for this property is `false`.
-    public var isSmoothRenderingEnabled: Bool {
+    open var isSmoothRenderingEnabled: Bool {
         set { textLayer.isSmoothRenderingEnabled = newValue }
         get { textLayer.isSmoothRenderingEnabled }
     }
 
-    private var textLayer: GlyphixTextLayer {
-        layer as! GlyphixTextLayer
-    }
+    public let textLayer: GlyphixTextLayer = .init()
 
     override public init(frame: CGRect) {
         super.init(frame: frame)
 
         #if os(iOS)
         configureAutoLayoutMethods()
+        self.layer.addSublayer(textLayer)
         #elseif os(macOS)
         wantsLayer = true
+        self.layer?.addSublayer(textLayer)
         #endif
     }
 
@@ -144,8 +144,10 @@ open class GlyphixTextLabel: PlatformView {
 
         #if os(iOS)
         configureAutoLayoutMethods()
+        self.layer.addSublayer(textLayer)
         #elseif os(macOS)
         wantsLayer = true
+        self.layer?.addSublayer(textLayer)
         #endif
     }
 
@@ -168,10 +170,6 @@ open class GlyphixTextLabel: PlatformView {
     }
 
     #if os(iOS)
-    override public class var layerClass: AnyClass {
-        GlyphixTextLayer.self
-    }
-
     override open func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         textLayer.effectiveAppearanceDidChange(traitCollection)
     }
@@ -196,6 +194,11 @@ open class GlyphixTextLabel: PlatformView {
 
     override open func sizeThatFits(_ size: CGSize) -> CGSize {
         ceil(textLayer.size(fitting: size))
+    }
+    
+    open override func layoutSubviews() {
+        super.layoutSubviews()
+        textLayer.frame = bounds
     }
 
     private func configureAutoLayoutMethods() {
@@ -241,10 +244,6 @@ open class GlyphixTextLabel: PlatformView {
     override public var isFlipped: Bool { true }
 
     private var finishedFirstConstraintsPass: Bool = false
-
-    override public func makeBackingLayer() -> CALayer {
-        GlyphixTextLayer()
-    }
 
     override public func viewDidChangeEffectiveAppearance() {
         super.viewDidChangeEffectiveAppearance()
@@ -301,6 +300,11 @@ open class GlyphixTextLabel: PlatformView {
     /// Asks the label to calculate and return the size that best fits the specified size.
     open func sizeThatFits(_ size: CGSize) -> CGSize {
         ceil(textLayer.size(fitting: size))
+    }
+    
+    open override func layout() {
+        super.layout()
+        textLayer.frame = bounds
     }
     #endif
 }
