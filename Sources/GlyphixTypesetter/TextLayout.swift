@@ -190,19 +190,29 @@ extension TextLayout.Builder {
                 let cgFont = CTFontCopyGraphicsFont(runFont, nil)
                 let glyphCount = CTRunGetGlyphCount(run)
                 var positions: [CGPoint] = .init(repeating: .zero, count: glyphCount)
-                CTRunGetPositions(run, .zero, &positions)
+                positions.withUnsafeMutableBufferPointer { ptr in
+                    CTRunGetPositions(run, .zero, ptr.baseAddress!)
+                }
                 // Stores the glyph advances (widths), representing the horizontal distance to
                 // the next character for precise text layout and width calculation.
                 var advances: [CGSize] = .init(repeating: .zero, count: glyphCount)
-                CTRunGetAdvances(run, .zero, &advances)
+                advances.withUnsafeMutableBufferPointer { ptr in
+                    CTRunGetAdvances(run, .zero, ptr.baseAddress!)
+                }
 
                 // Optimization - batch allocate the space for the run.
                 placedGlyphs.reserveCapacity(placedGlyphs.count + glyphCount)
 
                 var glyphs = [CGGlyph](repeating: 0, count: glyphCount)
-                CTRunGetGlyphs(run, .zero, &glyphs)
+                glyphs.withUnsafeMutableBufferPointer { ptr in
+                    CTRunGetGlyphs(run, .zero, ptr.baseAddress!)
+                }
                 var boundingRects: [CGRect] = .init(repeating: .zero, count: glyphCount)
-                CTFontGetBoundingRectsForGlyphs(font, .default, &glyphs, &boundingRects, glyphCount)
+                glyphs.withUnsafeBufferPointer { glyph in
+                    boundingRects.withUnsafeMutableBufferPointer { rects in
+                        CTFontGetBoundingRectsForGlyphs(runFont, .default, glyph.baseAddress!, rects.baseAddress!, glyphCount)
+                    }
+                }
                 for (glyphIndex, glyph) in glyphs.enumerated() {
                     let glyphName = cgFont.name(for: glyph) as? String
                     let position = positions[glyphIndex]

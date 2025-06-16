@@ -4,7 +4,7 @@
 //
 
 import Choreographer
-import GlyphixTypesetter
+@_exported import GlyphixTypesetter
 import Respring
 
 #if os(iOS)
