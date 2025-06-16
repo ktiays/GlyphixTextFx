@@ -152,6 +152,17 @@ open class GlyphixTextLayer: CALayer {
     private let phoneSpring: Spring = .smooth(duration: 0.42)
     private let bouncySpring: Spring = .init(response: 0.42, dampingRatio: 0.8)
     private var effectiveAppearance: Appearance = .initialValue
+    
+    private var platformView: PlatformView? {
+        var current: CALayer? = self
+        while let layer = current {
+            if let view = layer.delegate as? PlatformView {
+                return view
+            }
+            current = layer.superlayer
+        }
+        return nil
+    }
 
     /// The display sync observer that drives animations of this layer.
     ///
@@ -390,9 +401,9 @@ extension GlyphixTextLayer {
         layer.needsDisplayOnBoundsChange = true
 
         #if os(iOS)
-        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen.scale ?? 2
+        let contentsScale: CGFloat = platformView?.window?.screen.scale ?? 2
         #elseif os(macOS)
-        let contentsScale: CGFloat = (delegate as? PlatformView)?.window?.screen?.backingScaleFactor ?? 2
+        let contentsScale: CGFloat = platformView?.window?.screen?.backingScaleFactor ?? 2
         #endif
         layer.contentsScale = contentsScale
 
