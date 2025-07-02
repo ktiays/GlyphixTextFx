@@ -8,6 +8,8 @@
 
 public typealias PlatformColor = UIColor
 public typealias PlatformView = UIView
+public typealias PlatformInsets = UIEdgeInsets
+
 typealias Appearance = UITraitCollection
 
 extension PlatformColor {
@@ -43,6 +45,7 @@ extension PlatformColor {
 
 public typealias PlatformColor = NSColor
 public typealias PlatformView = NSView
+public typealias PlatformInsets = NSEdgeInsets
 
 typealias Appearance = NSAppearance
 

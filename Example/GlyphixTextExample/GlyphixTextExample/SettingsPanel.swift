@@ -14,6 +14,11 @@ final class LabelConfiguration: ObservableObject {
     @Published var countsDown: Bool = false
     @Published var alignment: GlyphixTextFx.TextAlignment = .leading
     @Published var lineBreakMode: NSLineBreakMode = .byTruncatingTail
+    
+    @Published var topInset: CGFloat = 0
+    @Published var leftInset: CGFloat = 0
+    @Published var bottomInset: CGFloat = 0
+    @Published var rightInset: CGFloat = 0
 
     @Published var isAnimationEnabled: Bool = true
     @Published var isBlurEffectEnabled: Bool = true
@@ -108,6 +113,7 @@ struct SettingsPanel: View {
                                             }
                                         }
                                 }
+                                .buttonStyle(.plain)
                             }
                             Color.clear
                                 .frame(width: 10, height: 30)
@@ -186,6 +192,54 @@ struct SettingsPanel: View {
                 }
             } header: {
                 Text("General")
+            }
+            Section {
+                VStack(spacing: 4) {
+                    HStack {
+                        Text("Top Inset")
+                        Spacer()
+                        Text(String(format: "%.1f", configuration.topInset))
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $configuration.topInset, in: 0...50, step: 1) {}
+                }
+                .padding(.vertical, 2)
+                VStack(spacing: 4) {
+                    HStack {
+                        Text("Left Inset")
+                        Spacer()
+                        Text(String(format: "%.1f", configuration.leftInset))
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $configuration.leftInset, in: 0...50, step: 1) {}
+                }
+                .padding(.vertical, 2)
+                VStack(spacing: 4) {
+                    HStack {
+                        Text("Bottom Inset")
+                        Spacer()
+                        Text(String(format: "%.1f", configuration.bottomInset))
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $configuration.bottomInset, in: 0...50, step: 1) {}
+                }
+                .padding(.vertical, 2)
+                VStack(spacing: 4) {
+                    HStack {
+                        Text("Right Inset")
+                        Spacer()
+                        Text(String(format: "%.1f", configuration.rightInset))
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                    Slider(value: $configuration.rightInset, in: 0...50, step: 1) {}
+                }
+                .padding(.vertical, 2)
+            } header: {
+                Text("Layout")
             }
             Section {
                 Toggle("Blur", isOn: $configuration.isBlurEffectEnabled)

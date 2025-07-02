@@ -139,6 +139,19 @@ open class GlyphixTextLayer: CALayer {
             }
         }
     }
+    
+    /// The inset of the text container's layout area within the content area.
+    public var contentInsets: PlatformInsets = .zero {
+        didSet {
+            if oldValue == contentInsets {
+                return
+            }
+            setNeedsLayout()
+            if !disablesAnimations {
+                layoutIfNeeded()
+            }
+        }
+    }
 
     private var containerBounds: CGRect = .zero
 
@@ -183,10 +196,7 @@ open class GlyphixTextLayer: CALayer {
         }
         lastFrameTimestamp = nil
         displaySyncObserver.frameUpdateHandler = { [weak self] context in
-            CATransaction.begin()
-            CATransaction.setDisableActions(true)
             self?.animateTransition(with: context)
-            CATransaction.commit()
         }
     }
 
@@ -197,8 +207,9 @@ open class GlyphixTextLayer: CALayer {
     override public func layoutSublayers() {
         super.layoutSublayers()
 
-        if containerBounds != bounds {
-            containerBounds = bounds
+        let targetBounds = bounds.inset(by: contentInsets)
+        if containerBounds != targetBounds {
+            containerBounds = targetBounds
             setNeedsUpdateTextLayout()
             return
         }
@@ -462,7 +473,7 @@ extension GlyphixTextLayer {
                 let glyph = placedGlyph.glyph
                 let descent = placedGlyph.descent
                 let boundingRect = placedGlyph.boundingRect
-                let rect = placedGlyph.layoutRect
+                let rect = placedGlyph.layoutRect.offsetBy(dx: contentInsets.left, dy: contentInsets.top)
                 let font = placedGlyph.font
                 if let states = glyphStates[stateKey], !stateKey.isEmpty {
                     for state in states {

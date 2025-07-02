@@ -80,6 +80,12 @@ open class GlyphixTextLabel: PlatformView {
         }
         get { textLayer.numberOfLines }
     }
+    
+    /// The inset of the text container's layout area within the content area.
+    open var contentInsets: PlatformInsets {
+        set { textLayer.contentInsets = newValue }
+        get { textLayer.contentInsets }
+    }
 
     /// A Boolean value that indicates whether views should disable animations.
     open var disablesAnimations: Bool {

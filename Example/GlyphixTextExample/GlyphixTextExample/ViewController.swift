@@ -96,6 +96,31 @@ final class ViewController: UIViewController {
             }
             .store(in: &cancellables)
         
+        // MARK: - Layout
+        
+        labelConfiguration.$topInset
+            .sink { [unowned self] topInset in
+                glyphixLabel.contentInsets.top = topInset
+            }
+            .store(in: &cancellables)
+        labelConfiguration.$leftInset
+            .sink { [unowned self] leftInset in
+                glyphixLabel.contentInsets.left = leftInset
+            }
+            .store(in: &cancellables)
+        labelConfiguration.$bottomInset
+            .sink { [unowned self] bottomInset in
+                glyphixLabel.contentInsets.bottom = bottomInset
+            }
+            .store(in: &cancellables)
+        labelConfiguration.$rightInset
+            .sink { [unowned self] rightInset in
+                glyphixLabel.contentInsets.right = rightInset
+            }
+            .store(in: &cancellables)
+        
+        // MARK: - Effects
+        
         labelConfiguration.$isAnimationEnabled
             .sink { [unowned self] isAnimationEnabled in
                 glyphixLabel.disablesAnimations = !isAnimationEnabled
