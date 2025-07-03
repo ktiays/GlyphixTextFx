@@ -139,7 +139,7 @@ open class GlyphixTextLayer: CALayer {
             }
         }
     }
-    
+
     /// The inset of the text container's layout area within the content area.
     public var contentInsets: PlatformInsets = .zero {
         didSet {
@@ -165,7 +165,7 @@ open class GlyphixTextLayer: CALayer {
     private let phoneSpring: Spring = .smooth(duration: 0.42)
     private let bouncySpring: Spring = .init(response: 0.42, dampingRatio: 0.8)
     private var effectiveAppearance: Appearance = .initialValue
-    
+
     private var platformView: PlatformView? {
         var current: CALayer? = self
         while let layer = current {
@@ -213,7 +213,7 @@ open class GlyphixTextLayer: CALayer {
             setNeedsUpdateTextLayout()
             return
         }
-        
+
         if isLayoutDirty {
             updateTextLayout()
         }
@@ -234,7 +234,11 @@ open class GlyphixTextLayer: CALayer {
             return .zero
         }
 
-        return textLayout.size(fitting: constrainedSize)
+        let textSize = textLayout.size(fitting: constrainedSize)
+        return .init(
+            width: textSize.width + contentInsets.left + contentInsets.right,
+            height: textSize.height + contentInsets.top + contentInsets.bottom
+        )
     }
 }
 
@@ -243,9 +247,9 @@ extension GlyphixTextLayer {
     final class LayerState {
 
         protocol Delegate: AnyObject {
-            
+
             var isBlurEffectEnabled: Bool { get }
-            
+
             func updateFrame(with state: LayerState)
         }
 
@@ -457,15 +461,15 @@ extension GlyphixTextLayer {
         } else {
             self.textLayout = nil
         }
-        
+
         isLayoutDirty = true
         setNeedsLayout()
     }
-    
+
     private func updateTextLayout() {
         defer { isLayoutDirty = false }
         layerStates.forEach { $1.invalid = true }
-        
+
         var stateNeedsAppearAnimation: [LayerState] = []
         if let textLayout {
             nextGlyph: for placedGlyph in textLayout.placedGlyphs {
