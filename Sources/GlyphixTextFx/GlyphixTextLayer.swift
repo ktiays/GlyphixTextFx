@@ -176,6 +176,15 @@ open class GlyphixTextLayer: CALayer {
         }
         return nil
     }
+    private var screenScale: CGFloat {
+        #if os(iOS)
+        return platformView?.window?.screen.scale ?? 2
+        #elseif os(macOS)
+        return platformView?.window?.screen?.backingScaleFactor ?? 2
+        #else
+        fatalError("Unsupported platform")
+        #endif
+    }
 
     /// The display sync observer that drives animations of this layer.
     ///
@@ -409,23 +418,19 @@ extension GlyphixTextLayer: GlyphixTextLayer.LayerState.Delegate {
 
 extension GlyphixTextLayer {
 
-    private func makeLayerState() -> LayerState {
+    private func makeLayerState(font: CTFont) -> LayerState {
         let layer = CALayer()
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
         layer.needsDisplayOnBoundsChange = true
-
-        #if os(iOS)
-        let contentsScale: CGFloat = platformView?.window?.screen.scale ?? 2
-        #elseif os(macOS)
-        let contentsScale: CGFloat = platformView?.window?.screen?.backingScaleFactor ?? 2
-        #endif
-        layer.contentsScale = contentsScale
+        layer.contentsScale = screenScale
 
         var filters: [Any] = []
-        if var colorFilter = ColorAddFilter() {
-            colorFilter.inputColor = colorAnimation.value.cgColor
-            filters.append(colorFilter.effect)
+        if !CTFontGetSymbolicTraits(font).contains(.traitColorGlyphs) {
+            if var colorFilter = ColorAddFilter() {
+                colorFilter.inputColor = colorAnimation.value.cgColor
+                filters.append(colorFilter.effect)
+            }
         }
         if let blurFilter = GaussianBlurFilter() {
             filters.append(blurFilter.effect)
@@ -434,6 +439,7 @@ extension GlyphixTextLayer {
 
         let state = LayerState(layer: layer)
         state.delegate = self
+        state.font = font
         return state
     }
 
@@ -509,8 +515,7 @@ extension GlyphixTextLayer {
                     }
                 }
 
-                let state = makeLayerState()
-                state.font = font
+                let state = makeLayerState(font: font)
                 state.glyph = glyph
                 state.descent = descent
                 state.boundingRect = boundingRect
@@ -778,6 +783,9 @@ extension GlyphixTextLayer: CALayerDelegate {
         ctx.saveGState()
         ctx.setAllowsAntialiasing(true)
         ctx.setShouldAntialias(true)
+        ctx.setAllowsFontSubpixelPositioning(true)
+        ctx.setShouldSubpixelPositionFonts(true)
+        ctx.setShouldSubpixelQuantizeFonts(false)
         if isSmoothRenderingEnabled {
             ctx.setAllowsFontSmoothing(true)
             ctx.setShouldSmoothFonts(true)

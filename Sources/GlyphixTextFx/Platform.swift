@@ -13,6 +13,8 @@ public typealias PlatformInsets = UIEdgeInsets
 typealias Appearance = UITraitCollection
 
 extension PlatformColor {
+    
+    @inlinable
     public static var glyphixDefaultColor: PlatformColor {
         .label
     }
@@ -50,6 +52,8 @@ public typealias PlatformInsets = NSEdgeInsets
 typealias Appearance = NSAppearance
 
 extension PlatformColor {
+    
+    @inlinable
     public static var glyphixDefaultColor: PlatformColor {
         .labelColor
     }
@@ -77,18 +81,22 @@ extension PlatformColor {
 #endif
 
 extension CFRange {
+    
+    @inlinable
     static var zero: Self {
         .init(location: 0, length: 0)
     }
 }
 
 extension CGSize {
-    
+
+    @inlinable
     static var greatestFiniteMagnitude: Self {
         .init(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
     }
 }
 
+@inlinable
 func ceil(_ size: CGSize) -> CGSize {
     .init(width: ceil(size.width), height: ceil(size.height))
 }
