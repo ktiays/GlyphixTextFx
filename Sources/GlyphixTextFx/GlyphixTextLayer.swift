@@ -143,7 +143,7 @@ open class GlyphixTextLayer: CALayer {
     /// The inset of the text container's layout area within the content area.
     public var contentInsets: PlatformInsets = .zero {
         didSet {
-            if oldValue == contentInsets {
+            if PlatformInsetsEqual(oldValue, contentInsets) {
                 return
             }
             setNeedsLayout()
@@ -216,7 +216,10 @@ open class GlyphixTextLayer: CALayer {
     override public func layoutSublayers() {
         super.layoutSublayers()
 
-        let targetBounds = bounds.inset(by: contentInsets)
+        let targetBounds = bounds.insetBy(
+            dx: contentInsets.left + contentInsets.right,
+            dy: contentInsets.top + contentInsets.bottom
+        )
         if containerBounds != targetBounds {
             containerBounds = targetBounds
             setNeedsUpdateTextLayout()

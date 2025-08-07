@@ -3,7 +3,6 @@
 //  Copyright (c) 2025 ktiays. All rights reserved.
 //
 
-#import <objc/runtime.h>
 #import <objc/message.h>
 #import <string>
 
@@ -80,12 +79,12 @@
     return ((BOOL (*)(struct objc_super *, SEL, BOOL)) objc_msgSendSuper)(&superStruct, selector, arg);
 }
 
-- (id)gtf_getObjectIvar:(NSString *)ivarName {
+- (nullable id)gtf_getObjectIvar:(NSString *)ivarName {
     Ivar ivar = class_getInstanceVariable(self.class, ivarName.UTF8String);
     return object_getIvar(self, ivar);
 }
 
-- (IMP)gtf_getImplementationForSelector:(SEL)selector {
+- (nullable IMP)gtf_getImplementationForSelector:(SEL)selector {
     Method method = class_getInstanceMethod(self.class, selector);
     return method_getImplementation(method);
 }

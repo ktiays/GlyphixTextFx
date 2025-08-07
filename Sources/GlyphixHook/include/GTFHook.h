@@ -4,6 +4,9 @@
 //
 
 #import <Foundation/Foundation.h>
+#import <objc/runtime.h>
+
+NS_ASSUME_NONNULL_BEGIN
 
 @interface NSObject (GTFHook)
 
@@ -18,8 +21,10 @@
 - (void)gtf_invokeSuperForSelector:(SEL)selector withRect:(CGRect)rect;
 - (BOOL)gtf_invokeSuperForSelector:(SEL)selector withBooleanArgReturnsBoolean:(BOOL)arg;
 
-- (id)gtf_getObjectIvar:(NSString *)ivarName;
+- (nullable id)gtf_getObjectIvar:(NSString *)ivarName;
 
-- (IMP)gtf_getImplementationForSelector:(SEL)selector;
+- (nullable IMP)gtf_getImplementationForSelector:(SEL)selector;
 
 @end
+
+NS_ASSUME_NONNULL_END

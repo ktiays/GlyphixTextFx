@@ -78,6 +78,10 @@ extension PlatformColor {
         return color
     }
 }
+
+extension PlatformInsets {
+    static var zero: Self { NSEdgeInsetsZero }
+}
 #endif
 
 extension CFRange {
@@ -104,3 +108,12 @@ func ceil(_ size: CGSize) -> CGSize {
 #if DEBUG && os(iOS)
 @_silgen_name("UIAnimationDragCoefficient") func UIAnimationDragCoefficient() -> Float
 #endif
+
+@inlinable
+func PlatformInsetsEqual(_ aInsets: PlatformInsets, _ bInsets: PlatformInsets) -> Bool {
+    #if os(iOS)
+    return aInsets == bInsets
+    #elseif os(macOS)
+    return NSEdgeInsetsEqual(aInsets, bInsets)
+    #endif
+}

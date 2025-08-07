@@ -293,7 +293,7 @@ open class GlyphixTextLabel: PlatformView {
             return
         }
         engine.perform("optimize")
-        guard let imp = self.gtf_getImplementation(for: "nsis_frame") else {
+        guard let imp = self.gtf_getImplementation(for: sel_registerName("nsis_frame")) else {
             return
         }
         let fn = unsafeBitCast(imp, to: (@convention(c) (AnyObject, Selector?) -> CGRect).self)
