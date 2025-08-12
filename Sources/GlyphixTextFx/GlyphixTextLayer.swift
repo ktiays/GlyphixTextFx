@@ -216,10 +216,7 @@ open class GlyphixTextLayer: CALayer {
     override public func layoutSublayers() {
         super.layoutSublayers()
 
-        let targetBounds = bounds.insetBy(
-            dx: contentInsets.left + contentInsets.right,
-            dy: contentInsets.top + contentInsets.bottom
-        )
+        let targetBounds = bounds.inset(by: contentInsets)
         if containerBounds != targetBounds {
             containerBounds = targetBounds
             setNeedsUpdateTextLayout()
