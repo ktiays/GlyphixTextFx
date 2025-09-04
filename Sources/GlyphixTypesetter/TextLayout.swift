@@ -208,7 +208,7 @@ extension TextLayout.Builder {
                     CTRunGetGlyphs(run, .zero, ptr.baseAddress!)
                 }
                 var boundingRects: [CGRect] = .init(repeating: .zero, count: glyphCount)
-                glyphs.withUnsafeBufferPointer { glyph in
+                _ = glyphs.withUnsafeBufferPointer { glyph in
                     boundingRects.withUnsafeMutableBufferPointer { rects in
                         CTFontGetBoundingRectsForGlyphs(runFont, .default, glyph.baseAddress!, rects.baseAddress!, glyphCount)
                     }

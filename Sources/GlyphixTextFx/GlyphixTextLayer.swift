@@ -18,13 +18,12 @@ open class GlyphixTextLayer: CALayer {
     /// The text that the label displays.
     public var text: String? {
         didSet {
-            if text == attributedText?.string {
+            if text == oldValue {
                 return
             }
             setNeedsUpdateTextLayout()
         }
     }
-    private var attributedText: NSAttributedString?
 
     public var font: PlatformFont? {
         didSet {

@@ -80,7 +80,21 @@ extension PlatformColor {
 }
 
 extension PlatformInsets {
+    @inlinable
     static var zero: Self { NSEdgeInsetsZero }
+}
+
+extension CGRect {
+    
+    @inlinable
+    func inset(by insets: NSEdgeInsets) -> Self {
+        .init(
+            x: origin.x + insets.left,
+            y: origin.y + insets.top,
+            width: size.width - insets.left - insets.right,
+            height: size.height - insets.top - insets.bottom
+        )
+    }
 }
 #endif
 
