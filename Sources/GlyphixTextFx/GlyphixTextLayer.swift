@@ -175,14 +175,22 @@ open class GlyphixTextLayer: CALayer {
         }
         return nil
     }
-    private var screenScale: CGFloat {
-        #if os(iOS)
-        return platformView?.window?.screen.scale ?? 2
-        #elseif os(macOS)
-        return platformView?.window?.screen?.backingScaleFactor ?? 2
-        #else
-        fatalError("Unsupported platform")
-        #endif
+
+    /// The scale factor applied to text sublayers for high-resolution rendering.
+    ///
+    /// Updating this value forces existing layers to redraw using the new scale.
+    /// 
+    /// The default value of this property is `2`.
+    open var textContentsScale: CGFloat = 2 {
+        didSet {
+            if textContentsScale == oldValue {
+                return
+            }
+            for (layer, _) in layerStates {
+                layer.contentsScale = textContentsScale
+                layer.setNeedsDisplay()
+            }
+        }
     }
 
     /// The display sync observer that drives animations of this layer.
@@ -422,7 +430,7 @@ extension GlyphixTextLayer {
         layer.delegate = self
         layer.allowsEdgeAntialiasing = true
         layer.needsDisplayOnBoundsChange = true
-        layer.contentsScale = screenScale
+        layer.contentsScale = textContentsScale
 
         var filters: [Any] = []
         if !CTFontGetSymbolicTraits(font).contains(.traitColorGlyphs) {

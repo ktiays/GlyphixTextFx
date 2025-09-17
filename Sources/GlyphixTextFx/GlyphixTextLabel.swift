@@ -190,7 +190,8 @@ open class GlyphixTextLabel: PlatformView {
 
     open override func willMove(toWindow newWindow: UIWindow?) {
         super.willMove(toWindow: newWindow)
-        if newWindow != nil {
+        if let window = newWindow {
+            textLayer.textContentsScale = window.screen.scale
             textLayer.displaySyncObserver = try? .init()
         } else {
             try? textLayer.displaySyncObserver?.invalidate()
@@ -268,6 +269,7 @@ open class GlyphixTextLabel: PlatformView {
     override open func viewWillMove(toWindow newWindow: NSWindow?) {
         super.viewWillMove(toWindow: newWindow)
         if let newWindow, let screen = newWindow.screen {
+            textLayer.textContentsScale = screen.backingScaleFactor
             textLayer.displaySyncObserver = try? .init(screen: screen)
         } else {
             try? textLayer.displaySyncObserver?.invalidate()
