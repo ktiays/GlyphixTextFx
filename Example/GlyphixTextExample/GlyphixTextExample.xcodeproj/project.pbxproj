@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		ED3CB3892D7AAF2500625D4E /* GlyphixTextFx in Frameworks */ = {isa = PBXBuildFile; productRef = ED3CB3882D7AAF2500625D4E /* GlyphixTextFx */; };
+		EDB0691E2F236912002C1103 /* GlyphixTextFx in Frameworks */ = {isa = PBXBuildFile; productRef = EDB0691D2F236912002C1103 /* GlyphixTextFx */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				ED3CB3892D7AAF2500625D4E /* GlyphixTextFx in Frameworks */,
+				EDB0691E2F236912002C1103 /* GlyphixTextFx in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,7 +83,7 @@
 			);
 			name = GlyphixTextExample;
 			packageProductDependencies = (
-				ED3CB3882D7AAF2500625D4E /* GlyphixTextFx */,
+				EDB0691D2F236912002C1103 /* GlyphixTextFx */,
 			);
 			productName = GlyphixTextExample;
 			productReference = ED3CB36E2D7AAEFC00625D4E /* GlyphixTextExample.app */;
@@ -114,7 +114,7 @@
 			mainGroup = ED3CB3652D7AAEFC00625D4E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				ED3CB3872D7AAF2500625D4E /* XCLocalSwiftPackageReference "../../../GlyphixTextFx" */,
+				EDB0691C2F236912002C1103 /* XCLocalSwiftPackageReference "../../../GlyphixTextFx" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = ED3CB36F2D7AAEFC00625D4E /* Products */;
@@ -356,14 +356,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		ED3CB3872D7AAF2500625D4E /* XCLocalSwiftPackageReference "../../../GlyphixTextFx" */ = {
+		EDB0691C2F236912002C1103 /* XCLocalSwiftPackageReference "../../../GlyphixTextFx" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../GlyphixTextFx;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		ED3CB3882D7AAF2500625D4E /* GlyphixTextFx */ = {
+		EDB0691D2F236912002C1103 /* GlyphixTextFx */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = GlyphixTextFx;
 		};
