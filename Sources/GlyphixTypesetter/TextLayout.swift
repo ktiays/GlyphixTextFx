@@ -226,7 +226,7 @@ extension TextLayout.Builder {
                     var rect = CGRect(
                         x: lineOrigin.x + position.x + xCompensation,
                         y: lineOrigin.y + position.y - topExtends,
-                        width: ceil(max(advance.width, boundingRect.maxX)),
+                        width: ceil(max(advance.width, boundingRect.width)),
                         height: lineBounds.height - bottomExtends + topExtends
                     )
                     if rect.minX > containerBounds.width {
