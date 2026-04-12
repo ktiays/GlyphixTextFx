@@ -109,7 +109,7 @@ open class GlyphixTextLabel: PlatformView {
     public var preferredMaxLayoutWidth: CGFloat = 0 {
         didSet {
             _invalidateIntrinsicContentSize()
-            #if os(iOS)
+            #if os(iOS) || os(tvOS)
             let needsDoubleUpdateConstraintsPass = self.gtf_invokeSuper(forSelectorReturnsBoolean: "_needsDoubleUpdateConstraintsPass")
             self.gtf_invokeSuper(
                 for: "_needsDoubleUpdateConstraintsPassMayHaveChangedFrom:",
@@ -136,7 +136,7 @@ open class GlyphixTextLabel: PlatformView {
     override public init(frame: CGRect) {
         super.init(frame: frame)
 
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         configureAutoLayoutMethods()
         self.layer.addSublayer(textLayer)
         #elseif os(macOS)
@@ -148,7 +148,7 @@ open class GlyphixTextLabel: PlatformView {
     public required init?(coder: NSCoder) {
         super.init(coder: coder)
 
-        #if os(iOS)
+        #if os(iOS) || os(tvOS)
         configureAutoLayoutMethods()
         self.layer.addSublayer(textLayer)
         #elseif os(macOS)
@@ -175,7 +175,7 @@ open class GlyphixTextLabel: PlatformView {
         invalidateIntrinsicContentSize()
     }
 
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
     override open func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         textLayer.effectiveAppearanceDidChange(traitCollection)
     }

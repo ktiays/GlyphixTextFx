@@ -35,7 +35,7 @@ public struct GlyphixText {
     }
 
     /// Creates a text view that displays a localized string resource.
-    @available(iOS 16.0, macOS 13.0, *)
+    @available(iOS 16.0, tvOS 16.0, macOS 13.0, *)
     public init(_ resource: LocalizedStringResource, countsDown: Bool = false) {
         self.init(text: .init(localized: resource), countsDown: true)
     }
@@ -91,7 +91,7 @@ public struct GlyphixText {
         }
     }
 
-    @available(iOS 16.0, macOS 13.0, *)
+    @available(iOS 16.0, tvOS 16.0, macOS 13.0, *)
     private func sizeThatFits(_ proposal: ProposedViewSize, view: GlyphixTextLabel) -> CGSize {
         switch proposal {
         case .zero:
@@ -117,7 +117,7 @@ public struct GlyphixText {
     }
 }
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 import UIKit
 
 extension GlyphixText: UIViewRepresentable {
@@ -130,7 +130,7 @@ extension GlyphixText: UIViewRepresentable {
         updateView(uiView)
     }
 
-    @available(iOS 16.0, *)
+    @available(iOS 16.0, tvOS 16.0, *)
     public func sizeThatFits(_ proposal: ProposedViewSize, uiView: GlyphixTextLabel, context: Context) -> CGSize? {
         sizeThatFits(proposal, view: uiView)
     }

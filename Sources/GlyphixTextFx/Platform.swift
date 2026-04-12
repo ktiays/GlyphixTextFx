@@ -3,7 +3,7 @@
 //  Copyright (c) 2024 ktiays. All rights reserved.
 //
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 @_exported import UIKit
 
 public typealias PlatformColor = UIColor
@@ -125,7 +125,7 @@ func ceil(_ size: CGSize) -> CGSize {
 
 @inlinable
 func PlatformInsetsEqual(_ aInsets: PlatformInsets, _ bInsets: PlatformInsets) -> Bool {
-    #if os(iOS)
+    #if os(iOS) || os(tvOS)
     return aInsets == bInsets
     #elseif os(macOS)
     return NSEdgeInsetsEqual(aInsets, bInsets)
