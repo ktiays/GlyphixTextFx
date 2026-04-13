@@ -7,7 +7,7 @@ import Choreographer
 @_exported import GlyphixTypesetter
 import Respring
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 import UIKit
 #else
 import AppKit

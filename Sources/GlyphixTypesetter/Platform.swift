@@ -3,7 +3,7 @@
 //  Copyright (c) 2025 ktiays. All rights reserved.
 //
 
-#if os(iOS)
+#if os(iOS) || os(tvOS)
 import UIKit
 
 public typealias PlatformFont = UIFont
@@ -16,7 +16,11 @@ public typealias PlatformFont = NSFont
 extension PlatformFont {
 
     public static var glyphixDefaultFont: PlatformFont {
+        #if os(tvOS)
+        .systemFont(ofSize: 20)
+        #else
         .systemFont(ofSize: PlatformFont.labelFontSize)
+        #endif
     }
 }
 
